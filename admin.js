@@ -285,14 +285,16 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
 
 /* ============ STATS ============ */
 async function loadStats(){
-  const { data } = await supabase.from('portfolio_images').select('category');
+  const { data } = await supabase.from('portfolio_images').select('*');
   const imgs = data || [];
+  const getCats = img => (img.categories && img.categories.length > 0) ? img.categories : [img.category];
+  const countCat = cat => imgs.filter(i => getCats(i).includes(cat)).length;
   const el = id => document.getElementById(id);
   if(el('sTotal')) el('sTotal').textContent = imgs.length;
-  if(el('sBN')) el('sBN').textContent = imgs.filter(i=>i.category==='Blanco y Negro').length;
-  if(el('sRet')) el('sRet').textContent = imgs.filter(i=>i.category==='Retratos').length;
-  if(el('sGot')) el('sGot').textContent = imgs.filter(i=>i.category==='Gothic').length;
-  if(el('sUrb')) el('sUrb').textContent = imgs.filter(i=>i.category==='Urbano').length;
+  if(el('sBN'))    el('sBN').textContent    = countCat('Blanco y Negro');
+  if(el('sRet'))   el('sRet').textContent   = countCat('Retratos');
+  if(el('sGot'))   el('sGot').textContent   = countCat('Gothic');
+  if(el('sUrb'))   el('sUrb').textContent   = countCat('Urbano');
 }
 
 function loadAdminData(){ loadAdminGallery(); loadAdminProfile(); loadSettings(); loadStats(); }

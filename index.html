@@ -175,6 +175,13 @@
     </div>
   </div>
 
+  <!-- EmailJS — reemplazá las 3 variables con tus datos -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>
+    emailjs.init('TU_PUBLIC_KEY'); // ← reemplazar
+    window.EMAILJS_SERVICE_ID  = 'TU_SERVICE_ID';   // ← reemplazar
+    window.EMAILJS_TEMPLATE_ID = 'TU_TEMPLATE_ID';  // ← reemplazar
+  </script>
   <script type="module" src="supabase.js"></script>
   <script type="module" src="app.js"></script>
 </body>

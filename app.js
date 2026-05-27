@@ -11,7 +11,9 @@ document.addEventListener('keydown', e => {
 /* ============ CURSOR (GPU ACCELERATED) ============ */
 const dot = document.querySelector('.cursor-dot');
 const ring = document.querySelector('.cursor-ring');
-if (dot && ring && window.innerWidth > 900) {
+// Activar para mouse Y para stylus (pointer fino) en cualquier tamaño de pantalla
+const hasFinePointer = window.matchMedia('(pointer:fine)').matches;
+if (dot && ring && hasFinePointer) {
   let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
   let ringX = mouseX, ringY = mouseY;
   window.addEventListener('mousemove', e => {
@@ -131,17 +133,31 @@ async function loadImages(){
 const lightbox = document.getElementById('lightbox');
 let lbIdx = 0;
 function openLightbox(idx){
-  lbIdx = idx; const img = allImages[idx];
+  lbIdx = idx;
+  const img = allImages[idx];
   document.getElementById('lbImg').src = img.image_url;
-  document.getElementById('lbCategory').textContent = img.category;
+  document.getElementById('lbCategory').textContent = ''; // sin tag de categoría
   document.getElementById('lbCounter').textContent = `${idx+1} / ${allImages.length}`;
-  lightbox.classList.add('open'); document.body.style.overflow = 'hidden';
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 function closeLightbox(){ lightbox.classList.remove('open'); document.body.style.overflow = ''; }
 document.getElementById('lbClose').addEventListener('click', closeLightbox);
 document.getElementById('lbPrev').addEventListener('click', () => openLightbox((lbIdx-1+allImages.length)%allImages.length));
 document.getElementById('lbNext').addEventListener('click', () => openLightbox((lbIdx+1)%allImages.length));
 lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+
+// ── Swipe táctil en mobile ──────────────────────────────────
+let _swipeX = 0;
+lightbox.addEventListener('touchstart', e => {
+  _swipeX = e.touches[0].clientX;
+}, { passive: true });
+lightbox.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - _swipeX;
+  if (Math.abs(dx) < 40) return; // umbral mínimo
+  if (dx < 0) openLightbox((lbIdx + 1) % allImages.length); // izq → siguiente
+  else         openLightbox((lbIdx - 1 + allImages.length) % allImages.length); // der → anterior
+}, { passive: true });
 document.addEventListener('keydown', e => {
   if (!lightbox.classList.contains('open')) return;
   if (e.key === 'Escape') closeLightbox();
@@ -191,9 +207,99 @@ document.getElementById('contactForm')?.addEventListener('submit', async (e) => 
     f.classList.toggle('invalid', !ok); if (!ok) valid = false;
   });
   if (!valid) return;
-  document.getElementById('formSuccess').classList.add('show');
-  e.target.reset(); setTimeout(() => document.getElementById('formSuccess').classList.remove('show'), 5000);
+
+  const btn  = e.target.querySelector('[type=submit]');
+  const fd   = new FormData(e.target);
+  const data = {
+    from_name:  fd.get('name')    || '',
+    from_email: fd.get('email')   || '',
+    message:    fd.get('message') || '',
+  };
+
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Enviando...';
+
+  try {
+    // Requiere configurar EmailJS — ver instrucciones abajo
+    await emailjs.send(
+      window.EMAILJS_SERVICE_ID   || 'TU_SERVICE_ID',
+      window.EMAILJS_TEMPLATE_ID  || 'TU_TEMPLATE_ID',
+      data
+    );
+    document.getElementById('formSuccess').classList.add('show');
+    e.target.reset();
+    setTimeout(() => document.getElementById('formSuccess').classList.remove('show'), 5000);
+  } catch(err) {
+    alert('Error al enviar: ' + (err.text || err.message || JSON.stringify(err)));
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'Enviar mensaje';
+  }
 });
+
+/* ============ GRID TRAIL ============ */
+function initGridTrail(){
+  const hero = document.querySelector('.hero');
+  if (!hero) return;
+
+  const canvas = document.createElement('canvas');
+  // mix-blend-mode:screen → negro = transparente, verde solo en fondos oscuros
+  canvas.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:screen;';
+  // Insertar ANTES del hero-content para garantizar que quede detrás
+  const heroContent = hero.querySelector('.hero-content');
+  if (heroContent) hero.insertBefore(canvas, heroContent);
+  else hero.appendChild(canvas);
+
+  const ctx  = canvas.getContext('2d');
+  const CELL = 80;   // igual al background-size del hero-grid
+  const FADE = 900;  // ms hasta desaparecer completamente
+
+  function resize(){
+    canvas.width  = hero.offsetWidth;
+    canvas.height = hero.offsetHeight;
+  }
+  resize();
+  new ResizeObserver(resize).observe(hero);
+
+  // Mapa: "col,row" → timestamp de último hover
+  const trail = new Map();
+
+  hero.addEventListener('mousemove', e => {
+    const r   = hero.getBoundingClientRect();
+    const col = Math.floor((e.clientX - r.left)  / CELL);
+    const row = Math.floor((e.clientY - r.top)   / CELL);
+    trail.set(`${col},${row}`, { col, row, t: Date.now() });
+  }, { passive: true });
+
+  hero.addEventListener('mouseleave', () => trail.clear());
+
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const now = Date.now();
+    trail.forEach((cell, key) => {
+      const age   = now - cell.t;
+      if (age > FADE) { trail.delete(key); return; }
+      const alpha = 1 - age / FADE;
+      const x = cell.col * CELL;
+      const y = cell.row * CELL;
+      // Fondo muy sutil para no tapar el texto
+      ctx.fillStyle = `rgba(0,255,65,${alpha * 0.025})`;
+      ctx.fillRect(x, y, CELL, CELL);
+      // Borde brillante — el efecto principal
+      ctx.strokeStyle = `rgba(0,255,65,${alpha * 0.6})`;
+      ctx.lineWidth   = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+      // Glow interior
+      const grad = ctx.createRadialGradient(x+CELL/2,y+CELL/2,0,x+CELL/2,y+CELL/2,CELL*0.7);
+      grad.addColorStop(0, `rgba(0,255,65,${alpha * 0.08})`);
+      grad.addColorStop(1, 'rgba(0,255,65,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, CELL, CELL);
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
 
 /* ============ ACCESO OCULTO ============ */
 let clickCount = 0, clickTimer = null;
@@ -213,4 +319,4 @@ if (logo) {
 }
 
 /* ============ INIT ============ */
-loadImages(); loadProfile(); loadSettings();
+loadImages(); loadProfile(); loadSettings(); initGridTrail();

@@ -76,7 +76,7 @@ input,select,textarea{font-family:inherit;font-size:1rem;color:var(--text);}img{
 /* HERO */
 .hero{min-height:85vh;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 4% 60px;overflow:hidden;}
 .hero-grid{position:absolute;inset:0;opacity:.15;background-image:linear-gradient(rgba(0,255,65,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.15) 1px,transparent 1px);background-size:80px 80px;mask-image:radial-gradient(ellipse at center,black 30%,transparent 75%);}
-.hero-content{position:relative;z-index:2;max-width:900px;text-align:center;}
+.hero-content{position:relative;z-index:3;max-width:900px;text-align:center;}
 .hero-kicker{font-family:'Barlow Condensed',sans-serif;font-size:.85rem;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);margin-bottom:20px;}
 .hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,8rem);line-height:.9;letter-spacing:.02em;display:flex;flex-direction:column;align-items:center;}
 .hero-title span{opacity:0;transform:translateY(40px);animation:rise .9s var(--t) forwards;}
@@ -314,3 +314,21 @@ img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none;}
 .cat-check{display:flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;}
 .cat-check input{accent-color:var(--accent);width:13px;height:13px;}
 .cat-check:hover{color:var(--accent);}
+
+/* ── SEPARADORES MOBILE ────────────────────────────────────── */
+@media(max-width:768px){
+  section{position:relative;}
+  section::before{
+    content:'';
+    position:absolute;
+    top:0;left:5%;right:5%;
+    height:1px;
+    background:linear-gradient(90deg,transparent,rgba(0,255,65,.2),transparent);
+  }
+  /* No poner separador en hero */
+  .hero::before{display:none;}
+  /* Lightbox: ocultar botones prev/next en mobile (reemplazado por swipe) */
+  .lb-prev,.lb-next{display:none;}
+  /* Mobile: cursor auto */
+  body{cursor:auto;}
+}
