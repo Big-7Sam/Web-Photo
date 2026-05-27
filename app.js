@@ -97,8 +97,9 @@ function renderCategories(){
 function renderGallery(){
   const items = activeCat === 'Todo'
     ? allImages
-    : allImages.filter(i => getCats(i).includes(activeCat)); // usa helper
+    : allImages.filter(i => getCats(i).includes(activeCat));
 
+  lbFilteredImages = [...items]; // ← guardar lista filtrada para lightbox
   galleryEl.innerHTML = '';
   galleryEl.className = 'gallery';
   const wrap = document.querySelector('.gallery-wrap');
@@ -115,7 +116,7 @@ function renderGallery(){
     div.style.animationDelay = `${Math.min(idx * 0.04, 0.6)}s`;
     // Sin tag de categoría en público
     div.innerHTML = `<img src="${img.image_url}" alt="" draggable="false">`;
-    div.addEventListener('click', () => openLightbox(allImages.indexOf(img)));
+    div.addEventListener('click', () => openLightbox(idx)); // índice filtrado
     galleryEl.appendChild(div);
   });
 }
@@ -132,19 +133,21 @@ async function loadImages(){
 /* ============ LIGHTBOX ============ */
 const lightbox = document.getElementById('lightbox');
 let lbIdx = 0;
+let lbFilteredImages = []; // fotos actualmente visibles (respeta filtro)
 function openLightbox(idx){
   lbIdx = idx;
-  const img = allImages[idx];
+  const img = lbFilteredImages[idx]; // usar lista filtrada
+  if (!img) return;
   document.getElementById('lbImg').src = img.image_url;
-  document.getElementById('lbCategory').textContent = ''; // sin tag de categoría
-  document.getElementById('lbCounter').textContent = `${idx+1} / ${allImages.length}`;
+  document.getElementById('lbCategory').textContent = '';
+  document.getElementById('lbCounter').textContent = `${idx+1} / ${lbFilteredImages.length}`;
   document.getElementById('lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 function closeLightbox(){ lightbox.classList.remove('open'); document.body.style.overflow = ''; }
 document.getElementById('lbClose').addEventListener('click', closeLightbox);
-document.getElementById('lbPrev').addEventListener('click', () => openLightbox((lbIdx-1+allImages.length)%allImages.length));
-document.getElementById('lbNext').addEventListener('click', () => openLightbox((lbIdx+1)%allImages.length));
+document.getElementById('lbPrev').addEventListener('click', () => openLightbox((lbIdx-1+lbFilteredImages.length)%lbFilteredImages.length));
+document.getElementById('lbNext').addEventListener('click', () => openLightbox((lbIdx+1)%lbFilteredImages.length));
 lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
 
 // ── Swipe táctil en mobile ──────────────────────────────────
@@ -155,8 +158,8 @@ lightbox.addEventListener('touchstart', e => {
 lightbox.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - _swipeX;
   if (Math.abs(dx) < 40) return; // umbral mínimo
-  if (dx < 0) openLightbox((lbIdx + 1) % allImages.length); // izq → siguiente
-  else         openLightbox((lbIdx - 1 + allImages.length) % allImages.length); // der → anterior
+  if (dx < 0) openLightbox((lbIdx + 1) % lbFilteredImages.length);
+  else         openLightbox((lbIdx - 1 + lbFilteredImages.length) % lbFilteredImages.length);
 }, { passive: true });
 document.addEventListener('keydown', e => {
   if (!lightbox.classList.contains('open')) return;
@@ -237,41 +240,30 @@ document.getElementById('contactForm')?.addEventListener('submit', async (e) => 
   }
 });
 
-/* ============ GRID TRAIL ============ */
+/* ============ GRID TRAIL (página completa, sutil) ============ */
 function initGridTrail(){
-  const hero = document.querySelector('.hero');
-  if (!hero) return;
-
   const canvas = document.createElement('canvas');
-  // mix-blend-mode:screen → negro = transparente, verde solo en fondos oscuros
-  canvas.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:screen;';
-  // Insertar ANTES del hero-content para garantizar que quede detrás
-  const heroContent = hero.querySelector('.hero-content');
-  if (heroContent) hero.insertBefore(canvas, heroContent);
-  else hero.appendChild(canvas);
+  // fixed = sigue toda la página, no solo el hero
+  canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;mix-blend-mode:screen;';
+  document.body.appendChild(canvas);
 
   const ctx  = canvas.getContext('2d');
-  const CELL = 80;   // igual al background-size del hero-grid
-  const FADE = 900;  // ms hasta desaparecer completamente
+  const CELL = 80;
+  const FADE = 1000;
 
   function resize(){
-    canvas.width  = hero.offsetWidth;
-    canvas.height = hero.offsetHeight;
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
   }
   resize();
-  new ResizeObserver(resize).observe(hero);
+  window.addEventListener('resize', resize, { passive: true });
 
-  // Mapa: "col,row" → timestamp de último hover
   const trail = new Map();
-
-  hero.addEventListener('mousemove', e => {
-    const r   = hero.getBoundingClientRect();
-    const col = Math.floor((e.clientX - r.left)  / CELL);
-    const row = Math.floor((e.clientY - r.top)   / CELL);
+  document.addEventListener('mousemove', e => {
+    const col = Math.floor(e.clientX / CELL);
+    const row = Math.floor(e.clientY / CELL);
     trail.set(`${col},${row}`, { col, row, t: Date.now() });
   }, { passive: true });
-
-  hero.addEventListener('mouseleave', () => trail.clear());
 
   function draw(){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -279,22 +271,16 @@ function initGridTrail(){
     trail.forEach((cell, key) => {
       const age   = now - cell.t;
       if (age > FADE) { trail.delete(key); return; }
-      const alpha = 1 - age / FADE;
+      const alpha = (1 - age / FADE);
       const x = cell.col * CELL;
       const y = cell.row * CELL;
-      // Fondo muy sutil para no tapar el texto
-      ctx.fillStyle = `rgba(0,255,65,${alpha * 0.025})`;
+      // Relleno muy sutil
+      ctx.fillStyle = `rgba(0,255,65,${alpha * 0.018})`;
       ctx.fillRect(x, y, CELL, CELL);
-      // Borde brillante — el efecto principal
-      ctx.strokeStyle = `rgba(0,255,65,${alpha * 0.6})`;
+      // Borde — efecto principal
+      ctx.strokeStyle = `rgba(0,255,65,${alpha * 0.45})`;
       ctx.lineWidth   = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
-      // Glow interior
-      const grad = ctx.createRadialGradient(x+CELL/2,y+CELL/2,0,x+CELL/2,y+CELL/2,CELL*0.7);
-      grad.addColorStop(0, `rgba(0,255,65,${alpha * 0.08})`);
-      grad.addColorStop(1, 'rgba(0,255,65,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(x, y, CELL, CELL);
     });
     requestAnimationFrame(draw);
   }

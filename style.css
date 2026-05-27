@@ -315,20 +315,23 @@ img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none;}
 .cat-check input{accent-color:var(--accent);width:13px;height:13px;}
 .cat-check:hover{color:var(--accent);}
 
-/* ── SEPARADORES MOBILE ────────────────────────────────────── */
+/* ── SEPARADORES ENTRE SECCIONES ──────────────────────────── */
+.portfolio,.about,.contact{
+  border-top:1px solid rgba(0,255,65,.12);
+}
+
+/* ── STACKING: contenido siempre sobre el canvas trail ─────── */
+/* El canvas trail es fixed z-index:0 — todo lo demás necesita z-index:1 */
+nav, section, footer, .lightbox, #loader {
+  position: relative;
+  z-index: 1;
+}
+/* Nav y lightbox ya son fixed, solo necesitan z-index más alto */
+nav    { z-index: 600; }
+.lightbox { z-index: 700; }
+#loader   { z-index: 8888; }
+/* Lightbox: ocultar botones prev/next en mobile (reemplazado por swipe) */
 @media(max-width:768px){
-  section{position:relative;}
-  section::before{
-    content:'';
-    position:absolute;
-    top:0;left:5%;right:5%;
-    height:1px;
-    background:linear-gradient(90deg,transparent,rgba(0,255,65,.2),transparent);
-  }
-  /* No poner separador en hero */
-  .hero::before{display:none;}
-  /* Lightbox: ocultar botones prev/next en mobile (reemplazado por swipe) */
   .lb-prev,.lb-next{display:none;}
-  /* Mobile: cursor auto */
   body{cursor:auto;}
 }
