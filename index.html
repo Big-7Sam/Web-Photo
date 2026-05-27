@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Santiago Fotografía — Captura el Instante</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;700&family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Loader -->
+  <div class="loader" id="loader">
+    <div class="loader-logo">SP</div>
+    <div class="loader-bar"><div class="loader-progress"></div></div>
+  </div>
+
+  <!-- Cursor -->
+  <div class="cursor-dot"></div>
+  <div class="cursor-ring"></div>
+
+  <!-- Grain -->
+  <div class="grain"></div>
+
+  <!-- Admin badge -->
+  <div class="admin-badge" id="adminBadge">
+    <span class="admin-dot"></span> Admin
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <a href="#hero" class="nav-logo">SP<span class="accent">.</span></a>
+    <ul class="nav-links">
+      <li><a href="#hero" data-section="hero">Inicio</a></li>
+      <li><a href="#portfolio" data-section="portfolio">Portfolio</a></li>
+      <li><a href="#about" data-section="about">Sobre mí</a></li>
+      <li><a href="#contact" data-section="contact">Contacto</a></li>
+    </ul>
+    <button class="nav-burger" id="navBurger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href="#hero">Inicio</a></li>
+      <li><a href="#portfolio">Portfolio</a></li>
+      <li><a href="#about">Sobre mí</a></li>
+      <li><a href="#contact">Contacto</a></li>
+      <li class="menu-secret"><a href="admin.html" title="⬡">⬡</a></li>
+    </ul>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-content" style="margin:0 auto;text-align:center;">
+      <p class="hero-kicker">Santiago Fotografía — Est. 2015</p>
+      <h1 class="hero-title">
+        <span>CAPTURA</span>
+        <span>EL</span>
+        <span>INSTANTE</span>
+      </h1>
+      <p class="hero-subtitle">Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.</p>
+      <a href="#portfolio" class="btn btn-primary">
+        <span>Ver Portfolio</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="scroll-indicator">
+      <span>SCROLL</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+  <section class="portfolio" id="portfolio">
+    <div class="container">
+      <header class="section-head">
+        <p class="section-kicker">— Galería</p>
+        <h2 class="section-title">Portfolio</h2>
+      </header>
+
+      <!-- Toolbar: categorias + toggle columnas -->
+      <div class="port-toolbar">
+        <div class="categories" id="categories"></div>
+        <div class="col-toggle" id="colToggle"></div>
+      </div>
+
+      <!-- Box scroll interno -->
+      <div class="gallery-wrap">
+        <div class="gallery" id="gallery"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="about" id="about">
+    <div class="container about-grid">
+      <div class="about-photo">
+        <img id="profileImg" src="" alt="Santiago">
+        <div class="about-photo-frame"></div>
+      </div>
+      <div class="about-content">
+        <p class="section-kicker">— Sobre mí</p>
+        <h2 class="section-title">Detrás del lente</h2>
+        <p class="about-bio" id="bioText">Cargando...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <div class="container contact-grid">
+      <div class="contact-info">
+        <p class="section-kicker">— Contacto</p>
+        <h2 class="section-title" id="contactTitle">Cargando...</h2>
+        <p class="contact-desc" id="contactSubtitle"></p>
+        <ul class="contact-list" id="contactList">
+          <li><span class="c-label">Email</span><a id="cEmail" href="mailto:hola@santiagofoto.com">hola@santiagofoto.com</a></li>
+          <li><span class="c-label">WhatsApp</span><a id="cWhatsapp" href="https://wa.me/" target="_blank">+54 11 0000-0000</a></li>
+          <li><span class="c-label">Ubicación</span><span id="cLocation">Buenos Aires, Argentina</span></li>
+          <li><span class="c-label">Instagram</span><a id="cInstagram" href="#" target="_blank">@santiagofoto</a></li>
+        </ul>
+      </div>
+
+      <form class="contact-form" id="contactForm" novalidate>
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" name="name" required>
+          <span class="field-error">Escribe tu nombre</span>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" required>
+          <span class="field-error">Email inválido</span>
+        </div>
+
+        <div class="field">
+          <label>Mensaje</label>
+          <textarea name="message" rows="5" required></textarea>
+          <span class="field-error">Escribe un mensaje</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">
+          <span>Enviar mensaje</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+        <div class="form-success" id="formSuccess">
+          <span class="ok-dot"></span>
+          ¡Mensaje enviado! Te responderé pronto.
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <a href="#" class="footer-logo">SP<span class="accent">.</span></a>
+      <p class="footer-copy">© <span id="year"></span> Santiago Fotografía. Todos los derechos reservados.</p>
+      <a href="admin.html" class="footer-secret" title="⬡">⬡</a>
+    </div>
+  </footer>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox">
+    <button class="lb-close" id="lbClose" aria-label="Cerrar">✕</button>
+    <button class="lb-prev" id="lbPrev" aria-label="Anterior">‹</button>
+    <button class="lb-next" id="lbNext" aria-label="Siguiente">›</button>
+    <div class="lb-stage">
+      <img id="lbImg" src="" alt="">
+      <div class="lb-meta">
+        <span id="lbCategory"></span>
+        <span id="lbCounter"></span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="supabase.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

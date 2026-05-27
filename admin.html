@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — Santiago Fotografía</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;700&family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body" style="overflow:hidden;">
+  <div class="grain"></div>
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+  <!-- LOGIN -->
+  <section class="auth-wrap" id="authWrap">
+    <div class="auth-card">
+      <a href="index.html" class="auth-logo">SP<span class="accent">.</span></a>
+      <h2>Acceso Admin</h2>
+      <p class="auth-sub">Inicia sesión para gestionar tu portfolio</p>
+      <form id="loginForm" class="auth-form">
+        <div class="field"><label>Email</label><input type="email" name="email" required autocomplete="email"></div>
+        <div class="field"><label>Contraseña</label><input type="password" name="password" required autocomplete="current-password"></div>
+        <button class="btn btn-primary btn-full" type="submit">Entrar</button>
+        <div class="auth-msg" id="authMsg"></div>
+      </form>
+      <a href="index.html" class="auth-back">← Volver al sitio</a>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="dashboard" id="dashboard" style="display:none;">
+    <aside class="dash-sidebar">
+      <div class="dash-brand">
+        <a href="index.html" class="nav-logo">SP<span class="accent">.</span></a>
+        <p>Admin Panel</p>
+      </div>
+      <nav class="dash-nav">
+        <button class="dash-nav-btn active" data-tab="upload">⬆ Subir fotos</button>
+        <button class="dash-nav-btn" data-tab="gallery">🖼 Galería</button>
+        <button class="dash-nav-btn" data-tab="profile">👤 Perfil</button>
+        <button class="dash-nav-btn" data-tab="contact">✉ Contacto</button>
+        <button class="dash-nav-btn" data-tab="stats">📊 Estadísticas</button>
+      </nav>
+      <div class="dash-user">
+        <span class="user-email" id="userEmail"></span>
+        <button class="btn btn-ghost btn-sm" id="logoutBtn">Salir</button>
+      </div>
+    </aside>
+
+    <main class="dash-main">
+      <header class="dash-top">
+        <div><p class="section-kicker">— Dashboard</p><h1 class="dash-title" id="dashTitle">Subir fotos</h1></div>
+        <a href="index.html" class="btn btn-ghost btn-sm">Ver sitio →</a>
+      </header>
+
+      <!-- UPLOAD -->
+      <section class="dash-panel active" data-panel="upload">
+        <div class="upload-card">
+          <label class="drop-zone" id="dropZone">
+            <div class="dz-icon">⬆</div>
+            <h3>Arrastra imágenes aquí</h3>
+            <p>o haz clic para seleccionar (JPG, PNG, WEBP)</p>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
+          </label>
+          <div class="upload-opts" id="uploadOpts" style="display:none;">
+            <div class="field">
+              <label>Categoría</label>
+              <select id="uploadCategory">
+                <option>Blanco y Negro</option>
+                <option>Retratos</option>
+                <option>Gothic</option>
+                <option>Urbano</option>
+              </select>
+            </div>
+            <div class="upload-queue" id="uploadQueue"></div>
+            <button class="btn btn-primary btn-full" id="uploadBtn">Subir al servidor</button>
+            <div class="upload-progress" id="uploadProgress"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GALLERY -->
+      <section class="dash-panel" data-panel="gallery">
+        <div class="panel-tools">
+          <select id="filterCategory"><option value="">Todas</option><option>Blanco y Negro</option><option>Retratos</option><option>Gothic</option><option>Urbano</option></select>
+          <button id="deleteSelectedBtn" class="btn btn-ghost btn-sm" style="border-color:var(--danger);color:var(--danger);">Eliminar (<span id="selectedCount">0</span>)</button>
+        </div>
+        <div class="admin-gallery" id="adminGallery"></div>
+      </section>
+
+      <!-- PROFILE -->
+      <section class="dash-panel" data-panel="profile">
+        <div class="panel-card">
+          <h3>Foto de perfil</h3>
+          <div class="profile-editor">
+            <img id="adminProfileImg" src="" alt="Perfil">
+            <label class="btn btn-ghost btn-sm">Cambiar foto<input type="file" id="profileImgInput" accept="image/*" hidden></label>
+          </div>
+          <div class="field"><label>Biografía</label><textarea id="adminBio" rows="8"></textarea></div>
+          <div class="field" style="margin-top:20px;border-top:1px solid #222;padding-top:20px;">
+            <label>Logo / Texto del sitio (reemplaza "SP")</label>
+            <input type="text" id="setLogoText" placeholder="SP" maxlength="20">
+          </div>
+          <button class="btn btn-primary" id="saveProfile">Guardar perfil</button>
+        </div>
+      </section>
+
+      <!-- CONTACT -->
+      <section class="dash-panel" data-panel="contact">
+        <div class="panel-card">
+          <div class="field"><label>Título de la sección</label><input type="text" id="setContactTitle" placeholder="Ej: Hablemos de tu proyecto"></div>
+          <div class="field"><label>Subtítulo</label><input type="text" id="setContactSubtitle" placeholder="Ej: Disponible para..."></div>
+          <div class="field"><label>Email</label><input type="email" id="setEmail"></div>
+          <div class="field"><label>WhatsApp</label><input type="text" id="setWhatsapp"></div>
+          <div class="field"><label>Ubicación</label><input type="text" id="setLocation"></div>
+          <div class="field"><label>Instagram</label><input type="text" id="setInstagram"></div>
+          <button class="btn btn-primary" id="saveSettings">Guardar</button>
+        </div>
+      </section>
+
+      <!-- STATS -->
+      <section class="dash-panel" data-panel="stats">
+        <div class="stats-grid">
+          <div class="stat-card"><span class="stat-num" id="sTotal">0</span><span class="stat-lbl">Total imágenes</span></div>
+          <div class="stat-card"><span class="stat-num" id="sBN">0</span><span class="stat-lbl">Blanco y Negro</span></div>
+          <div class="stat-card"><span class="stat-num" id="sRet">0</span><span class="stat-lbl">Retratos</span></div>
+          <div class="stat-card"><span class="stat-num" id="sGot">0</span><span class="stat-lbl">Gothic</span></div>
+          <div class="stat-card"><span class="stat-num" id="sUrb">0</span><span class="stat-lbl">Urbano</span></div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <script type="module" src="supabase.js"></script>
+  <script type="module" src="admin.js"></script>
+  
+</body>
+</html>
+
