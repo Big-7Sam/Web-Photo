@@ -321,15 +321,8 @@ img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none;}
 }
 
 /* ── STACKING: contenido siempre sobre el canvas trail ─────── */
-/* El canvas trail es fixed z-index:0 — todo lo demás necesita z-index:1 */
-nav, section, footer, .lightbox, #loader {
-  position: relative;
-  z-index: 1;
-}
-/* Nav y lightbox ya son fixed, solo necesitan z-index más alto */
-nav    { z-index: 600; }
-.lightbox { z-index: 700; }
-#loader   { z-index: 8888; }
+/* Solo sections y footer necesitan z-index:1 para estar sobre canvas:z-index:0 */
+section, footer { position: relative; z-index: 1; }
 /* Lightbox: ocultar botones prev/next en mobile (reemplazado por swipe) */
 @media(max-width:768px){
   .lb-prev,.lb-next{display:none;}
