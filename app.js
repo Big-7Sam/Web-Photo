@@ -46,6 +46,7 @@ const T = {
     about_kicker: '— Sobre mí', about_title: 'Detrás del lente',
     contact_kicker: '— Contacto',
     form_name: 'Nombre', form_email: 'Email', form_msg: 'Mensaje', form_send: 'Enviar mensaje',
+    form_sending: 'Enviando...',
     scroll: 'SCROLL', gallery_empty: '— No hay imágenes en esta categoría —',
   },
   en: {
@@ -59,6 +60,7 @@ const T = {
     about_kicker: '— About me', about_title: 'Behind the lens',
     contact_kicker: '— Contact',
     form_name: 'Name', form_email: 'Email', form_msg: 'Message', form_send: 'Send message',
+    form_sending: 'Sending...',
     scroll: 'SCROLL', gallery_empty: '— No images in this category —',
   }
 };
@@ -195,7 +197,8 @@ function renderGallery(){
   if (wrap) wrap.scrollTop = 0;
 
   if (!items.length) {
-    galleryEl.innerHTML = '<div class="gallery-empty">— No hay imágenes en esta categoría —</div>';
+    const t = T[currentLang || 'es'];
+    galleryEl.innerHTML = `<div class="gallery-empty">${t.gallery_empty}</div>`;
     return;
   }
 
@@ -270,7 +273,7 @@ async function loadSettings(){
   if (!data) return;
   const map = { cEmail:'email', cWhatsapp:'whatsapp', cLocation:'location', cInstagram:'instagram' };
   Object.entries(map).forEach(([id, key]) => {
-    const el = document.getElementById(id); if (!data[key]) return;
+    const el = document.getElementById(id); if (!el || !data[key]) return;
     el.textContent = data[key];
     if (id === 'cEmail') el.href = 'mailto:'+data[key];
     if (id === 'cWhatsapp') el.href = 'https://wa.me/' + data[key].replace(/\D/g,'');
@@ -309,7 +312,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async (e) => 
   };
 
   btn.disabled = true;
-  btn.querySelector('span').textContent = 'Enviando...';
+  btn.querySelector('span').textContent = T[currentLang || 'es'].form_sending;
 
   try {
     // Requiere configurar EmailJS — ver instrucciones abajo
@@ -325,7 +328,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async (e) => 
     alert('Error al enviar: ' + (err.text || err.message || JSON.stringify(err)));
   } finally {
     btn.disabled = false;
-    btn.querySelector('span').textContent = 'Enviar mensaje';
+    btn.querySelector('span').textContent = T[currentLang || 'es'].form_send;
   }
 });
 

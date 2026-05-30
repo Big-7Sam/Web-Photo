@@ -143,6 +143,7 @@ async function loadAdminGallery(){
     div.innerHTML = `
       <img src="${img.image_url}" alt="">
       <div class="ag-cats">${catTags}</div>
+      <button class="ag-select" type="button" title="Seleccionar" aria-label="Seleccionar imagen"></button>
       <button class="ag-del" title="Eliminar">✕</button>
       <div class="ag-cat-editor" style="display:none">
         ${CAT_LIST.map(c=>`
@@ -155,11 +156,16 @@ async function loadAdminGallery(){
     `;
     // Toggle cat editor on click
     div.addEventListener('click', e => {
-      if (e.target.closest('.ag-del,.ag-save-cats,.cat-check')) return;
+      if (e.target.closest('.ag-del,.ag-select,.ag-save-cats,.cat-check')) return;
       const editor = div.querySelector('.ag-cat-editor');
       const isOpen = editor.style.display !== 'none';
       document.querySelectorAll('.ag-cat-editor').forEach(ed=>ed.style.display='none');
       editor.style.display = isOpen ? 'none' : 'flex';
+    });
+    div.querySelector('.ag-select').addEventListener('click', e => {
+      e.stopPropagation();
+      div.classList.toggle('selected');
+      updateSelectedCount();
     });
     // Save categories
     div.querySelector('.ag-save-cats').addEventListener('click', async e => {
@@ -191,11 +197,13 @@ function updateSelectedCount(){
   if (el) el.textContent = c;
 }
 
-document.getElementById('deleteSelectedBtn')?.addEventListener('click', () => {
-  const selected = document.querySelectorAll('.ag-item.selected');
+document.getElementById('deleteSelectedBtn')?.addEventListener('click', async e => {
+  const selected = [...document.querySelectorAll('.ag-item.selected')];
   if (!selected.length) return alert('Selecciona imágenes para eliminar');
   if (!confirm(`¿Eliminar ${selected.length} imágenes?`)) return;
-  selected.forEach(async el => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  await Promise.all(selected.map(async el => {
     const id = parseInt(el.dataset.id);
     const img = adminImages.find(i => i.id === id);
     if (img) {
@@ -203,8 +211,10 @@ document.getElementById('deleteSelectedBtn')?.addEventListener('click', () => {
       if (path) await supabase.storage.from('portfolio').remove([path]);
       await supabase.from('portfolio_images').delete().eq('id', img.id);
     }
-  });
-  setTimeout(() => { loadAdminGallery(); loadStats(); }, 500);
+  }));
+  btn.disabled = false;
+  loadAdminGallery();
+  loadStats();
 });
 
 async function deleteImg(img){
