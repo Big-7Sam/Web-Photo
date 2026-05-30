@@ -65,6 +65,38 @@ const uploadQueue = document.getElementById('uploadQueue');
 const uploadBtn = document.getElementById('uploadBtn');
 const uploadProgress = document.getElementById('uploadProgress');
 let pendingFiles = [];
+const CAT_LIST = ['Retratos','Editorial','Dark'];
+const CATEGORY_ALIASES = {
+  'Blanco y Negro': 'Retratos',
+  'Gothic': 'Dark',
+  'Urbano': 'Dark',
+  'Nocturno': 'Dark'
+};
+
+function getCats(img){
+  const raw = (img.categories && img.categories.length > 0) ? img.categories : [img.category];
+  return [...new Set(raw.map(cat => CATEGORY_ALIASES[cat] || cat).filter(Boolean))];
+}
+
+function sortImages(images){
+  return [...images].sort((a, b) => {
+    const orderA = Number.isFinite(Number(a.sort_order)) ? Number(a.sort_order) : Number.MAX_SAFE_INTEGER;
+    const orderB = Number.isFinite(Number(b.sort_order)) ? Number(b.sort_order) : Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+}
+
+async function insertPortfolioImage(row){
+  const { error } = await supabase.from('portfolio_images').insert(row);
+  if (!error) return { error: null };
+  const fallback = {
+    title: row.title,
+    category: row.category,
+    image_url: row.image_url
+  };
+  return supabase.from('portfolio_images').insert(fallback);
+}
 
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
@@ -97,7 +129,8 @@ uploadBtn.addEventListener('click', async () => {
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`;
     const { data, error } = await supabase.storage.from('portfolio').upload(fileName, file, { cacheControl: '3600' });
     if (error) { console.error(error); continue; }
-    await supabase.from('portfolio_images').insert({ title: null, category, image_url: publicUrl(data.path) });
+    const insert = await insertPortfolioImage({ title: null, category, categories: [category], image_url: publicUrl(data.path), sort_order: Date.now() + done });
+    if (insert.error) { console.error(insert.error); continue; }
     done++; bar.style.width = (done/pendingFiles.length*100)+'%';
   }
   setTimeout(() => {
@@ -111,14 +144,13 @@ uploadBtn.addEventListener('click', async () => {
 
 /* ============ GALERÍA + BORRADO MÚLTIPLE ============ */
 let adminImages = [];
-const CAT_LIST = ['Blanco y Negro','Retratos','Gothic','Urbano'];
 
 async function loadAdminGallery(){
   const filter = document.getElementById('filterCategory').value;
   // Siempre cargar todo, filtrar en JS para soportar multi-categoría
   const { data } = await supabase
     .from('portfolio_images').select('*').order('created_at', { ascending: false });
-  let all = data || [];
+  let all = sortImages(data || []);
 
   // Deduplicar por ID
   all = all.filter((img,i,arr) => arr.findIndex(x=>x.id===img.id)===i);
@@ -126,7 +158,7 @@ async function loadAdminGallery(){
   // Filtrar usando el array de categorías (no solo la primaria)
   if (filter) {
     all = all.filter(img => {
-      const cats = (img.categories && img.categories.length > 0) ? img.categories : [img.category];
+      const cats = getCats(img);
       return cats.includes(filter);
     });
   }
@@ -135,7 +167,7 @@ async function loadAdminGallery(){
   const gal = document.getElementById('adminGallery');
   gal.innerHTML = '';
   adminImages.forEach(img => {
-    const cats = (img.categories && img.categories.length > 0) ? img.categories : [img.category];
+    const cats = getCats(img);
     const catTags = cats.map(c=>`<span class="cat-tag">${c}</span>`).join('');
     const div = document.createElement('div');
     div.className = 'ag-item';
@@ -143,6 +175,11 @@ async function loadAdminGallery(){
     div.innerHTML = `
       <img src="${img.image_url}" alt="">
       <div class="ag-cats">${catTags}</div>
+      <div class="ag-order">
+        <button class="ag-order-btn" type="button" data-dir="up" title="Subir">↑</button>
+        <button class="ag-order-btn" type="button" data-dir="down" title="Bajar">↓</button>
+      </div>
+      <button class="ag-feature ${img.is_featured ? 'active' : ''}" type="button" title="Marcar destacada" aria-label="Marcar destacada">★</button>
       <button class="ag-select" type="button" title="Seleccionar" aria-label="Seleccionar imagen"></button>
       <button class="ag-del" title="Eliminar">✕</button>
       <div class="ag-cat-editor" style="display:none">
@@ -156,7 +193,7 @@ async function loadAdminGallery(){
     `;
     // Toggle cat editor on click
     div.addEventListener('click', e => {
-      if (e.target.closest('.ag-del,.ag-select,.ag-save-cats,.cat-check')) return;
+      if (e.target.closest('.ag-del,.ag-select,.ag-feature,.ag-order-btn,.ag-save-cats,.cat-check')) return;
       const editor = div.querySelector('.ag-cat-editor');
       const isOpen = editor.style.display !== 'none';
       document.querySelectorAll('.ag-cat-editor').forEach(ed=>ed.style.display='none');
@@ -166,6 +203,16 @@ async function loadAdminGallery(){
       e.stopPropagation();
       div.classList.toggle('selected');
       updateSelectedCount();
+    });
+    div.querySelector('.ag-feature').addEventListener('click', async e => {
+      e.stopPropagation();
+      await setFeatured(img.id);
+    });
+    div.querySelectorAll('.ag-order-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        await moveImage(img.id, btn.dataset.dir);
+      });
     });
     // Save categories
     div.querySelector('.ag-save-cats').addEventListener('click', async e => {
@@ -190,6 +237,32 @@ async function loadAdminGallery(){
   updateSelectedCount();
 }
 document.getElementById('filterCategory').addEventListener('change', loadAdminGallery);
+
+async function setFeatured(id){
+  const { error: clearError } = await supabase.from('portfolio_images').update({ is_featured: false }).neq('id', id);
+  if (clearError) return alert('Para marcar destacadas, agrega la columna is_featured en Supabase. Revisá README.md.');
+  const { error } = await supabase.from('portfolio_images').update({ is_featured: true }).eq('id', id);
+  if (error) return alert('No se pudo marcar destacada: ' + error.message);
+  loadAdminGallery();
+}
+
+async function moveImage(id, dir){
+  const idx = adminImages.findIndex(img => img.id === id);
+  const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+  if (idx < 0 || targetIdx < 0 || targetIdx >= adminImages.length) return;
+  const current = adminImages[idx];
+  const target = adminImages[targetIdx];
+  const currentOrder = Number.isFinite(Number(current.sort_order)) ? Number(current.sort_order) : idx;
+  const targetOrder = Number.isFinite(Number(target.sort_order)) ? Number(target.sort_order) : targetIdx;
+  const updates = [
+    supabase.from('portfolio_images').update({ sort_order: targetOrder }).eq('id', current.id),
+    supabase.from('portfolio_images').update({ sort_order: currentOrder }).eq('id', target.id)
+  ];
+  const results = await Promise.all(updates);
+  const error = results.find(r => r.error)?.error;
+  if (error) return alert('Para ordenar fotos, agrega la columna sort_order en Supabase. Revisá README.md.');
+  loadAdminGallery();
+}
 
 function updateSelectedCount(){
   const c = document.querySelectorAll('.ag-item.selected').length;
@@ -230,8 +303,22 @@ async function loadAdminProfile(){
   const { data } = await supabase.from('profile').select('*').limit(1).maybeSingle();
   if (data) {
     if (data.profile_image) document.getElementById('adminProfileImg').src = publicUrl(data.profile_image);
-    if (data.bio) document.getElementById('adminBio').value = data.bio;
+    const bioSet = parseBioSet(data.bio, data.bio_en);
+    document.getElementById('adminBio').value = bioSet.es;
+    document.getElementById('adminBioEn').value = bioSet.en;
   }
+}
+
+function parseBioSet(bio, bioEn){
+  if (bio && typeof bio === 'string') {
+    try {
+      const parsed = JSON.parse(bio);
+      if (parsed && typeof parsed === 'object' && ('es' in parsed || 'en' in parsed)) {
+        return { es: parsed.es || '', en: parsed.en || bioEn || '' };
+      }
+    } catch {}
+  }
+  return { es: bio || '', en: bioEn || '' };
 }
 document.getElementById('profileImgInput').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
@@ -246,10 +333,21 @@ document.getElementById('profileImgInput').addEventListener('change', async (e) 
 });
 document.getElementById('saveProfile').addEventListener('click', async () => {
   const bio      = document.getElementById('adminBio').value;
+  const bioEn    = document.getElementById('adminBioEn').value;
   const logoText = document.getElementById('setLogoText').value.trim();
   const existing = await supabase.from('profile').select('id').limit(1).maybeSingle();
-  if (existing.data) await supabase.from('profile').update({ bio }).eq('id', existing.data.id);
-  else await supabase.from('profile').insert({ bio });
+  const profilePayload = { bio, bio_en: bioEn };
+  let profileResult;
+  if (existing.data) profileResult = await supabase.from('profile').update(profilePayload).eq('id', existing.data.id);
+  else profileResult = await supabase.from('profile').insert(profilePayload);
+  if (profileResult.error && profileResult.error.message.toLowerCase().includes('bio_en')) {
+    const packedBio = bioEn ? JSON.stringify({ es: bio, en: bioEn }) : bio;
+    if (existing.data) await supabase.from('profile').update({ bio: packedBio }).eq('id', existing.data.id);
+    else await supabase.from('profile').insert({ bio: packedBio });
+    alert('Perfil guardado. La bio bilingüe quedó guardada en modo compatible; cuando agregues bio_en, se podrá guardar en columna separada.');
+  } else if (profileResult.error) {
+    return alert('Error guardando perfil: ' + profileResult.error.message);
+  }
   // Logo text goes to settings
   if (logoText) {
     const sExisting = await supabase.from('settings').select('id').limit(1).maybeSingle();
@@ -297,14 +395,12 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
 async function loadStats(){
   const { data } = await supabase.from('portfolio_images').select('*');
   const imgs = data || [];
-  const getCats = img => (img.categories && img.categories.length > 0) ? img.categories : [img.category];
   const countCat = cat => imgs.filter(i => getCats(i).includes(cat)).length;
   const el = id => document.getElementById(id);
   if(el('sTotal')) el('sTotal').textContent = imgs.length;
-  if(el('sBN'))    el('sBN').textContent    = countCat('Blanco y Negro');
   if(el('sRet'))   el('sRet').textContent   = countCat('Retratos');
-  if(el('sGot'))   el('sGot').textContent   = countCat('Gothic');
-  if(el('sUrb'))   el('sUrb').textContent   = countCat('Urbano');
+  if(el('sEd'))    el('sEd').textContent    = countCat('Editorial');
+  if(el('sDark'))  el('sDark').textContent  = countCat('Dark');
 }
 
 function loadAdminData(){ loadAdminGallery(); loadAdminProfile(); loadSettings(); loadStats(); }

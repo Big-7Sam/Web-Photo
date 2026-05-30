@@ -41,12 +41,13 @@ const T = {
     hero_lines: ['CAPTURA','EL','INSTANTE'],
     hero_sub: 'Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.',
     hero_btn: 'Ver Portfolio',
-    gallery_kicker: '— Galería', gallery_title: 'Portfolio',
-    cats: { 'Todo':'Todo','Blanco y Negro':'Blanco y Negro','Retratos':'Retratos','Gothic':'Gothic','Urbano':'Urbano' },
-    about_kicker: '— Sobre mí', about_title: 'Detrás del lente',
-    contact_kicker: '— Contacto',
+    gallery_kicker: 'Galería', gallery_title: 'Portfolio',
+    cats: { 'Todo':'Todo','Retratos':'Retratos','Editorial':'Editorial','Dark':'Dark' },
+    about_kicker: 'Sobre mí', about_title: 'Detrás del lente',
+    contact_kicker: 'Contacto',
     form_name: 'Nombre', form_email: 'Email', form_msg: 'Mensaje', form_send: 'Enviar mensaje',
     form_sending: 'Enviando...',
+    footer_rights: 'Todos los derechos reservados.',
     scroll: 'SCROLL', gallery_empty: '— No hay imágenes en esta categoría —',
   },
   en: {
@@ -55,12 +56,13 @@ const T = {
     hero_lines: ['CAPTURE','THE','MOMENT'],
     hero_sub: 'Every image tells a unique story. Moments that last beyond time.',
     hero_btn: 'View Portfolio',
-    gallery_kicker: '— Gallery', gallery_title: 'Portfolio',
-    cats: { 'Todo':'All','Blanco y Negro':'Black & White','Retratos':'Portraits','Gothic':'Gothic','Urbano':'Urban' },
-    about_kicker: '— About me', about_title: 'Behind the lens',
-    contact_kicker: '— Contact',
+    gallery_kicker: 'Gallery', gallery_title: 'Portfolio',
+    cats: { 'Todo':'All','Retratos':'Portraits','Editorial':'Editorial','Dark':'Dark' },
+    about_kicker: 'About me', about_title: 'Behind the lens',
+    contact_kicker: 'Contact',
     form_name: 'Name', form_email: 'Email', form_msg: 'Message', form_send: 'Send message',
     form_sending: 'Sending...',
+    footer_rights: 'All rights reserved.',
     scroll: 'SCROLL', gallery_empty: '— No images in this category —',
   }
 };
@@ -71,6 +73,8 @@ function setLang(lang) {
   currentLang = lang;
   localStorage.setItem('sf_lang', lang);
   const t = T[lang];
+  document.body.classList.add('lang-changing');
+  document.documentElement.lang = lang;
   document.getElementById('langEs')?.classList.toggle('active', lang==='es');
   document.getElementById('langEn')?.classList.toggle('active', lang==='en');
   // Nav links
@@ -98,8 +102,13 @@ function setLang(lang) {
     const map = [t.form_name, t.form_email, t.form_msg];
     if(map[i]) l.textContent = map[i];
   });
+  const footerCopy = document.querySelector('.footer-copy');
+  const yearEl = document.getElementById('year');
+  if (footerCopy && yearEl) footerCopy.innerHTML = `© <span id="year">${new Date().getFullYear()}</span> ${t.hero_kicker.split(' — ')[0]}. ${t.footer_rights}`;
+  if (window.profileData) renderProfile();
   // Re-render categories con nombres traducidos
   if(typeof renderCategories === 'function') renderCategories();
+  window.setTimeout(() => document.body.classList.remove('lang-changing'), 180);
 }
 
 function chooseLang(lang) {
@@ -158,14 +167,38 @@ document.getElementById('year').textContent = new Date().getFullYear();
 
 /* ============ PORTFOLIO ============ */
 let allImages = [];
-const categories = ['Todo','Blanco y Negro','Retratos','Gothic','Urbano'];
+const categories = ['Todo','Retratos','Editorial','Dark'];
+const CATEGORY_ALIASES = {
+  'Blanco y Negro': 'Retratos',
+  'Gothic': 'Dark',
+  'Urbano': 'Dark',
+  'Nocturno': 'Dark'
+};
 let activeCat = 'Todo';
 const catsEl = document.getElementById('categories');
 const galleryEl = document.getElementById('gallery');
 
 // Helper: obtener categorías reales de una foto
 function getCats(img){
-  return (img.categories && img.categories.length > 0) ? img.categories : [img.category];
+  const raw = (img.categories && img.categories.length > 0) ? img.categories : [img.category];
+  return [...new Set(raw.map(cat => CATEGORY_ALIASES[cat] || cat).filter(Boolean))];
+}
+
+function sortImages(images){
+  return [...images].sort((a, b) => {
+    const orderA = Number.isFinite(Number(a.sort_order)) ? Number(a.sort_order) : Number.MAX_SAFE_INTEGER;
+    const orderB = Number.isFinite(Number(b.sort_order)) ? Number(b.sort_order) : Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+}
+
+function applyFeaturedHero(){
+  const hero = document.querySelector('.hero');
+  const featured = allImages.find(img => img.is_featured);
+  if (!hero || !featured?.image_url) return;
+  hero.style.setProperty('--hero-image', `url("${featured.image_url}")`);
+  hero.classList.add('has-featured');
 }
 
 function renderCategories(){
@@ -207,7 +240,7 @@ function renderGallery(){
     div.className = 'gallery-item';
     div.style.animationDelay = `${Math.min(idx * 0.04, 0.6)}s`;
     // Sin tag de categoría en público
-    div.innerHTML = `<img src="${img.image_url}" alt="" draggable="false">`;
+    div.innerHTML = `<img src="${img.image_url}" alt="" draggable="false" loading="lazy">`;
     div.addEventListener('click', () => openLightbox(idx)); // índice filtrado
     galleryEl.appendChild(div);
   });
@@ -217,7 +250,8 @@ async function loadImages(){
   try {
     const { data } = await supabase
       .from('portfolio_images').select('*').order('created_at', { ascending: false });
-    allImages = data || [];
+    allImages = sortImages(data || []);
+    applyFeaturedHero();
     renderCategories(); renderGallery();
   } catch(err) { console.error('Error cargando imágenes:', err); }
 }
@@ -264,9 +298,30 @@ document.addEventListener('keydown', e => {
 async function loadProfile(){
   const { data } = await supabase.from('profile').select('*').limit(1).maybeSingle();
   if (data) {
-    if (data.profile_image) document.getElementById('profileImg').src = publicUrl(data.profile_image);
-    if (data.bio) document.getElementById('bioText').textContent = data.bio;
+    window.profileData = data;
+    renderProfile();
   }
+}
+
+function renderProfile(){
+  const data = window.profileData;
+  if (!data) return;
+  if (data.profile_image) document.getElementById('profileImg').src = publicUrl(data.profile_image);
+  const bioSet = parseBioSet(data.bio, data.bio_en);
+  const bio = currentLang === 'en' ? (bioSet.en || bioSet.es) : (bioSet.es || bioSet.en);
+  if (bio) document.getElementById('bioText').textContent = bio;
+}
+
+function parseBioSet(bio, bioEn){
+  if (bio && typeof bio === 'string') {
+    try {
+      const parsed = JSON.parse(bio);
+      if (parsed && typeof parsed === 'object' && ('es' in parsed || 'en' in parsed)) {
+        return { es: parsed.es || '', en: parsed.en || bioEn || '' };
+      }
+    } catch {}
+  }
+  return { es: bio || '', en: bioEn || '' };
 }
 async function loadSettings(){
   const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
@@ -334,6 +389,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async (e) => 
 
 /* ============ GRID TRAIL (página completa, sutil) ============ */
 function initGridTrail(){
+  if (window.matchMedia('(max-width: 768px), (prefers-reduced-motion: reduce)').matches) return;
   const canvas = document.createElement('canvas');
   // fixed = sigue toda la página, no solo el hero
   canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;mix-blend-mode:screen;';
@@ -389,9 +445,7 @@ if (logo) {
     clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
     if (clickCount >= 5) {
       clickCount = 0;
-      supabase.auth.getSession().then(({data}) => {
-        window.location.href = data.session ? 'admin.html' : '#';
-      });
+      window.location.href = 'admin.html';
     }
   });
 }

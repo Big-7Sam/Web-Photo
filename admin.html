@@ -69,10 +69,9 @@
             <div class="field">
               <label>Categoría</label>
               <select id="uploadCategory">
-                <option>Blanco y Negro</option>
                 <option>Retratos</option>
-                <option>Gothic</option>
-                <option>Urbano</option>
+                <option>Editorial</option>
+                <option>Dark</option>
               </select>
             </div>
             <div class="upload-queue" id="uploadQueue"></div>
@@ -85,7 +84,7 @@
       <!-- GALLERY -->
       <section class="dash-panel" data-panel="gallery">
         <div class="panel-tools">
-          <select id="filterCategory"><option value="">Todas</option><option>Blanco y Negro</option><option>Retratos</option><option>Gothic</option><option>Urbano</option></select>
+          <select id="filterCategory"><option value="">Todas</option><option>Retratos</option><option>Editorial</option><option>Dark</option></select>
           <button id="deleteSelectedBtn" class="btn btn-ghost btn-sm" style="border-color:var(--danger);color:var(--danger);">Eliminar (<span id="selectedCount">0</span>)</button>
         </div>
         <div class="admin-gallery" id="adminGallery"></div>
@@ -99,7 +98,8 @@
             <img id="adminProfileImg" src="" alt="Perfil">
             <label class="btn btn-ghost btn-sm">Cambiar foto<input type="file" id="profileImgInput" accept="image/*" hidden></label>
           </div>
-          <div class="field"><label>Biografía</label><textarea id="adminBio" rows="8"></textarea></div>
+          <div class="field"><label>Biografía ES</label><textarea id="adminBio" rows="7"></textarea></div>
+          <div class="field"><label>Biografía EN</label><textarea id="adminBioEn" rows="7" placeholder="Opcional: versión en inglés"></textarea></div>
           <div class="field" style="margin-top:20px;border-top:1px solid #222;padding-top:20px;">
             <label>Logo / Texto del sitio (reemplaza "SP")</label>
             <input type="text" id="setLogoText" placeholder="SP" maxlength="20">
@@ -125,10 +125,9 @@
       <section class="dash-panel" data-panel="stats">
         <div class="stats-grid">
           <div class="stat-card"><span class="stat-num" id="sTotal">0</span><span class="stat-lbl">Total imágenes</span></div>
-          <div class="stat-card"><span class="stat-num" id="sBN">0</span><span class="stat-lbl">Blanco y Negro</span></div>
           <div class="stat-card"><span class="stat-num" id="sRet">0</span><span class="stat-lbl">Retratos</span></div>
-          <div class="stat-card"><span class="stat-num" id="sGot">0</span><span class="stat-lbl">Gothic</span></div>
-          <div class="stat-card"><span class="stat-num" id="sUrb">0</span><span class="stat-lbl">Urbano</span></div>
+          <div class="stat-card"><span class="stat-num" id="sEd">0</span><span class="stat-lbl">Editorial</span></div>
+          <div class="stat-card"><span class="stat-num" id="sDark">0</span><span class="stat-lbl">Dark</span></div>
         </div>
       </section>
     </main>
@@ -139,4 +138,3 @@
   
 </body>
 </html>
-
