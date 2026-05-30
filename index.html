@@ -14,6 +14,13 @@
   <div class="loader" id="loader">
     <div class="loader-logo">SP</div>
     <div class="loader-bar"><div class="loader-progress"></div></div>
+    <div class="loader-lang" id="loaderLang">
+      <p>Elegí tu idioma · Choose your language</p>
+      <div class="loader-lang-btns">
+        <button onclick="chooseLang('es')">Español</button>
+        <button onclick="chooseLang('en')">English</button>
+      </div>
+    </div>
   </div>
 
   <!-- Cursor -->
@@ -37,9 +44,16 @@
       <li><a href="#about" data-section="about">Sobre mí</a></li>
       <li><a href="#contact" data-section="contact">Contacto</a></li>
     </ul>
-    <button class="nav-burger" id="navBurger" aria-label="Menu">
+    <div class="nav-right" style="display:flex;align-items:center;gap:8px;">
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="langEs" onclick="setLang('es')">ES</button>
+        <span class="lang-sep">/</span>
+        <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      </div>
+      <button class="nav-burger" id="navBurger" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
+    </div><!-- /nav-right -->
   </nav>
 
   <div class="mobile-menu" id="mobileMenu">

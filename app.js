@@ -33,6 +33,86 @@ if (dot && ring && hasFinePointer) {
   });
 } else if (dot && ring) { dot.style.display='none'; ring.style.display='none'; }
 
+/* ============ SISTEMA DE IDIOMA ============ */
+const T = {
+  es: {
+    nav: ['Inicio','Portfolio','Sobre Mí','Contacto'],
+    hero_kicker: 'Santiago Fotografía — Est. 2015',
+    hero_lines: ['CAPTURA','EL','INSTANTE'],
+    hero_sub: 'Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.',
+    hero_btn: 'Ver Portfolio',
+    gallery_kicker: '— Galería', gallery_title: 'Portfolio',
+    cats: { 'Todo':'Todo','Blanco y Negro':'Blanco y Negro','Retratos':'Retratos','Gothic':'Gothic','Urbano':'Urbano' },
+    about_kicker: '— Sobre mí', about_title: 'Detrás del lente',
+    contact_kicker: '— Contacto',
+    form_name: 'Nombre', form_email: 'Email', form_msg: 'Mensaje', form_send: 'Enviar mensaje',
+    scroll: 'SCROLL', gallery_empty: '— No hay imágenes en esta categoría —',
+  },
+  en: {
+    nav: ['Home','Portfolio','About Me','Contact'],
+    hero_kicker: 'Santiago Photography — Est. 2015',
+    hero_lines: ['CAPTURE','THE','MOMENT'],
+    hero_sub: 'Every image tells a unique story. Moments that last beyond time.',
+    hero_btn: 'View Portfolio',
+    gallery_kicker: '— Gallery', gallery_title: 'Portfolio',
+    cats: { 'Todo':'All','Blanco y Negro':'Black & White','Retratos':'Portraits','Gothic':'Gothic','Urbano':'Urban' },
+    about_kicker: '— About me', about_title: 'Behind the lens',
+    contact_kicker: '— Contact',
+    form_name: 'Name', form_email: 'Email', form_msg: 'Message', form_send: 'Send message',
+    scroll: 'SCROLL', gallery_empty: '— No images in this category —',
+  }
+};
+
+let currentLang = localStorage.getItem('sf_lang') || null;
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('sf_lang', lang);
+  const t = T[lang];
+  document.getElementById('langEs')?.classList.toggle('active', lang==='es');
+  document.getElementById('langEn')?.classList.toggle('active', lang==='en');
+  // Nav links
+  document.querySelectorAll('.nav-links a').forEach((a,i) => { if(t.nav[i]) a.textContent = t.nav[i]; });
+  document.querySelectorAll('.mobile-menu a').forEach((a,i) => { if(t.nav[i]) a.textContent = t.nav[i]; });
+  // Hero
+  document.querySelectorAll('.hero-title span').forEach((s,i) => { if(t.hero_lines[i]) s.textContent = t.hero_lines[i]; });
+  const heroKicker = document.querySelector('.hero-kicker');         if(heroKicker) heroKicker.textContent = t.hero_kicker;
+  const heroSub    = document.querySelector('.hero-subtitle');       if(heroSub)    heroSub.textContent    = t.hero_sub;
+  const heroBtn    = document.querySelector('.hero .btn span');      if(heroBtn)    heroBtn.textContent    = t.hero_btn;
+  const scrollEl   = document.querySelector('.scroll-indicator span'); if(scrollEl) scrollEl.textContent  = t.scroll;
+  // Gallery
+  const gKicker = document.querySelector('.portfolio .section-kicker'); if(gKicker) gKicker.textContent = t.gallery_kicker;
+  const gTitle  = document.querySelector('.portfolio .section-title');  if(gTitle)  gTitle.textContent  = t.gallery_title;
+  // About
+  const aKicker = document.querySelector('.about .section-kicker'); if(aKicker) aKicker.textContent = t.about_kicker;
+  const aTitle  = document.querySelector('.about .section-title');  if(aTitle)  aTitle.textContent  = t.about_title;
+  // Contact
+  const cKicker = document.querySelector('.contact .section-kicker'); if(cKicker) cKicker.textContent = t.contact_kicker;
+  // Form
+  const fName = document.querySelector('[name=name]');    if(fName) fName.placeholder = t.form_name;
+  const fMsg  = document.querySelector('[name=message]'); if(fMsg)  fMsg.placeholder  = t.form_msg;
+  const fBtn  = document.querySelector('.contact-form [type=submit] span'); if(fBtn) fBtn.textContent = t.form_send;
+  document.querySelectorAll('.contact-form .field label').forEach((l,i) => {
+    const map = [t.form_name, t.form_email, t.form_msg];
+    if(map[i]) l.textContent = map[i];
+  });
+  // Re-render categories con nombres traducidos
+  if(typeof renderCategories === 'function') renderCategories();
+}
+
+function chooseLang(lang) {
+  document.getElementById('loaderLang')?.classList.remove('show');
+  setLang(lang);
+  setTimeout(() => {
+    const l = document.getElementById('loader');
+    if(l){ l.classList.add('hide'); setTimeout(()=>l.remove(),700); }
+  }, 300);
+}
+
+// Exponer al scope global — necesario porque app.js es type="module"
+window.setLang    = setLang;
+window.chooseLang = chooseLang;
+
 /* ============ LOADER ============ */
 function hideLoader(){
   const l = document.getElementById('loader');
@@ -40,8 +120,15 @@ function hideLoader(){
   l.classList.add('hide');
   setTimeout(() => { if (l.parentNode) l.remove(); }, 700);
 }
-window.addEventListener('load', () => setTimeout(hideLoader, 1200));
-setTimeout(hideLoader, 3500);
+window.addEventListener('load', () => {
+  if (localStorage.getItem('sf_lang')) {
+    setTimeout(hideLoader, 1200); // ya eligió idioma
+  } else {
+    setTimeout(() => document.getElementById('loaderLang')?.classList.add('show'), 1300);
+    setTimeout(() => { if(!localStorage.getItem('sf_lang')) chooseLang('es'); }, 15000);
+  }
+});
+setTimeout(() => { if(localStorage.getItem('sf_lang')) hideLoader(); }, 3500);
 
 /* ============ NAV & MOBILE ============ */
 const nav = document.querySelector('.nav');
@@ -88,7 +175,9 @@ function renderCategories(){
       : allImages.filter(i => getCats(i).includes(cat)).length;
     const btn = document.createElement('button');
     btn.className = 'cat-btn' + (cat === activeCat ? ' active' : '');
-    btn.innerHTML = `${cat}<span class="cat-count">${count}</span>`;
+    const t = T[currentLang || 'es'];
+    const displayName = (t && t.cats && t.cats[cat]) ? t.cats[cat] : cat;
+    btn.innerHTML = `${displayName}<span class="cat-count">${count}</span>`;
     btn.addEventListener('click', () => { activeCat = cat; renderCategories(); renderGallery(); });
     catsEl.appendChild(btn);
   });
@@ -306,3 +395,5 @@ if (logo) {
 
 /* ============ INIT ============ */
 loadImages(); loadProfile(); loadSettings(); initGridTrail();
+// Aplicar idioma guardado (si existe)
+if (currentLang) setLang(currentLang);
