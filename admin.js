@@ -29,10 +29,15 @@ const $ = id => document.getElementById(id);
 const CATS = ['Blanco y Negro','Retratos','Gothic','Urbano'];
 const CAT_COLOR = { 'Blanco y Negro':'#E9EFE9','Retratos':'#00FF41','Gothic':'#FF2D95','Urbano':'#00E5FF' };
 const HEAVY = 3*1024*1024;
+const SQL_TEXT = `alter table portfolio_images
+  add column if not exists file_size bigint,
+  add column if not exists file_format text,
+  add column if not exists thumb_url text,
+  add column if not exists is_featured boolean not null default false;`;
 
-function toast(msg, type='ok', ms=3400){
+function toast(msg, type='ok', ms=3600){
   const t = document.createElement('div');
-  t.className = 'toast' + (type==='ok' ? '' : ' '+type);
+  t.className = 'toast' + (type==='ok'?'':' '+type);
   t.innerHTML = `<i>${type==='err'?'✕':type==='warn'?'!':'✓'}</i><span></span>`;
   t.querySelector('span').textContent = msg;
   $('toasts').appendChild(t);
@@ -73,12 +78,36 @@ const storagePath = url => {
   if (!url) return null;
   const m = '/object/public/portfolio/';
   const i = url.indexOf(m);
-  return decodeURIComponent(i >= 0 ? url.slice(i+m.length) : (url.split('/portfolio/')[1] || '')) || null;
+  return decodeURIComponent(i>=0 ? url.slice(i+m.length) : (url.split('/portfolio/')[1]||'')) || null;
 };
 async function pool(items, limit, worker){
   const q = [...items];
   await Promise.all(Array.from({length:Math.min(limit,q.length)}, async () => { while(q.length) await worker(q.shift()); }));
 }
+const missingColumn = err => !!err && (err.code === '42703' || /column|schema cache|does not exist/i.test(err.message||''));
+
+/* ══════════ ESQUEMA ══════════ */
+let schemaOK = true;
+async function checkSchema(){
+  const { error } = await supabase.from('portfolio_images').select('id,is_featured,thumb_url,file_size,file_format').limit(1);
+  schemaOK = !error;
+  $('schemaAlert').hidden = schemaOK;
+  if (!schemaOK) console.warn('Esquema incompleto:', error?.message);
+  return schemaOK;
+}
+$('copySql').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(SQL_TEXT); toast('SQL copiado. Pegalo en Supabase → SQL Editor.'); }
+  catch(e){
+    const r = document.createRange(); r.selectNodeContents($('schemaSql'));
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    toast('Seleccionado: copiá con Ctrl+C.','warn');
+  }
+});
+$('retrySchema').addEventListener('click', async () => {
+  const ok = await checkSchema();
+  if (ok){ toast('Esquema listo. Ya podés fijar la portada.'); await loadAdminGallery(); }
+  else toast('Todavía falta ejecutar el SQL en Supabase.','err');
+});
 
 /* ══════════ IMAGEN ══════════ */
 async function loadBitmap(file){
@@ -106,7 +135,7 @@ async function makeThumb(file, max=900){
     return blob;
   } catch(e){ return null; }
 }
-const extOf = b => b.type === 'image/webp' ? 'webp' : b.type === 'image/png' ? 'png' : 'jpg';
+const extOf = b => b.type==='image/webp'?'webp':b.type==='image/png'?'png':'jpg';
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 
 /* ══════════ AUTH ══════════ */
@@ -116,9 +145,10 @@ async function checkSession(){
   if (data.session) showDashboard(data.session.user);
   else { authWrap.style.display='flex'; dashboard.hidden = true; }
 }
-function showDashboard(user){
+async function showDashboard(user){
   authWrap.style.display='none'; dashboard.hidden=false;
   $('userEmail').textContent = user.email;
+  await checkSchema();
   loadAdminGallery(); loadAdminProfile(); loadSettingsAdmin();
 }
 $('loginForm').addEventListener('submit', async e => {
@@ -176,12 +206,12 @@ function renderQueue(){
     st.textContent = p.state;
     row.append(img,info,st); q.appendChild(row);
   });
-  const total = pending.reduce((a,p) => a+p.file.size, 0);
+  const total = pending.reduce((a,p)=>a+p.file.size,0);
   $('uploadSummary').innerHTML = `<b>${pending.length}</b> archivos · ${fmtBytes(total)} · destino: ${$('uploadCategory').value}`;
   $('uploadOpts').hidden = pending.length === 0;
 }
 $('uploadCategory').addEventListener('change', () => { if (pending.length) renderQueue(); });
-$('uploadClear').addEventListener('click', () => { pending.forEach(p => URL.revokeObjectURL(p.url)); pending=[]; renderQueue(); $('uploadProgress').classList.remove('show'); });
+$('uploadClear').addEventListener('click', () => { pending.forEach(p=>URL.revokeObjectURL(p.url)); pending=[]; renderQueue(); $('uploadProgress').classList.remove('show'); });
 
 $('uploadBtn').addEventListener('click', async () => {
   if (!pending.length || uploading) return;
@@ -205,10 +235,9 @@ $('uploadBtn').addEventListener('click', async () => {
         const tu = await supabase.storage.from('portfolio').upload(`thumb/${id}.${extOf(thumb)}`, thumb, { cacheControl:'31536000' });
         if (!tu.error){ thumbUrl = publicUrl(tu.data.path); saved += p.file.size - thumb.size; }
       }
-      const ins = await supabase.from('portfolio_images').insert({
-        title:null, category, image_url:publicUrl(up.data.path), thumb_url:thumbUrl,
-        file_size:p.file.size, file_format:fmtOf(p.file.type,p.file.name), is_featured:false
-      });
+      const row = { title:null, category, image_url:publicUrl(up.data.path) };
+      if (schemaOK){ row.thumb_url = thumbUrl; row.file_size = p.file.size; row.file_format = fmtOf(p.file.type,p.file.name); row.is_featured = false; }
+      const ins = await supabase.from('portfolio_images').insert(row);
       if (ins.error) throw ins.error;
       p.state='ok'; if (st){ st.className='uq-state ok'; st.textContent='listo'; }
     } catch(err){
@@ -221,9 +250,9 @@ $('uploadBtn').addEventListener('click', async () => {
   uploading=false; $('uploadBtn').removeAttribute('disabled');
   if (failed) toast(`${done-failed} subidas, ${failed} con error.`,'warn',5000);
   else toast(`${done} foto${done>1?'s':''} subida${done>1?'s':''}${saved>0?' · miniaturas ahorran '+fmtBytes(saved):''}.`);
-  setTimeout(() => { pending.forEach(p => URL.revokeObjectURL(p.url)); pending=[]; renderQueue(); prog.classList.remove('show'); }, 1400);
+  setTimeout(() => { pending.forEach(p=>URL.revokeObjectURL(p.url)); pending=[]; renderQueue(); prog.classList.remove('show'); }, 1400);
   await loadAdminGallery();
-  if (!rows.some(r => r.is_featured) && rows.length) await setFeatured(rows[0], true);
+  if (schemaOK && rows.length && !rows.some(r => r.is_featured)) await setFeatured(rows[0], true);
 });
 
 /* ══════════ GALERÍA ══════════ */
@@ -233,7 +262,8 @@ async function loadAdminGallery(){
   const { data, error } = await supabase.from('portfolio_images').select('*').order('created_at',{ascending:false});
   if (error){ toast('No se pudo leer la galería: '+error.message,'err'); return; }
   rows = data || [];
-  renderAdminGallery(); renderStats(); backfillMeta();
+  renderAdminGallery(); renderStats();
+  if (schemaOK) backfillMeta();
 }
 function filteredRows(){
   const cat = $('filterCategory').value, fmt = $('filterFormat').value, sort = $('sortBy').value;
@@ -252,13 +282,13 @@ function filteredRows(){
 function renderCover(){
   const manual = rows.find(r => r.is_featured);
   const row = manual || rows[0];
-  const img = $('coverImg');
-  if (row){ img.src = row.thumb_url || row.image_url; } else { img.removeAttribute('src'); }
-  $('coverPh').style.display = row ? 'none' : 'block';
+  const thumb = $('ccThumb');
+  if (row){ $('coverImg').src = row.thumb_url || row.image_url; thumb.classList.add('has-img'); }
+  else { $('coverImg').removeAttribute('src'); thumb.classList.remove('has-img'); }
   $('coverTitle').textContent = row ? (manual ? 'Portada fija' : 'Portada automática') : 'Sin fotos todavía';
   $('coverMeta').textContent = row
-    ? `${row.category || '—'} · ${fmtBytes(row.file_size)} · ${manual ? 'Elegida por vos. Tocá ★ en otra foto para cambiarla.' : 'Se usa la más reciente. Tocá ★ en cualquier foto para fijar una.'}`
-    : 'Subí tu primera foto y va a ocupar el inicio automáticamente.';
+    ? `${row.category || '—'} · ${fmtBytes(row.file_size)} · ${manual ? 'Elegida por vos. Tocá ★ en otra foto para cambiarla.' : 'Se usa la más reciente. Tocá ★ en una foto para fijarla.'}`
+    : 'Subí tu primera foto y ocupará el inicio automáticamente.';
   $('coverClear').hidden = !manual;
 }
 
@@ -285,13 +315,13 @@ function renderAdminGallery(){
       const cat = document.createElement('span'); cat.className='ag-cat'; cat.textContent = r.category||'—';
       const check = document.createElement('button'); check.className='ag-check'; check.type='button'; check.textContent='✓'; check.setAttribute('aria-label','Seleccionar');
       const fav = document.createElement('button'); fav.className='ag-fav'+(r.is_featured?' on':''); fav.type='button'; fav.textContent='★';
-      fav.setAttribute('aria-label', r.is_featured ? 'Quitar de portada' : 'Usar como portada del inicio');
+      fav.title = r.is_featured ? 'Quitar de portada' : 'Usar como portada del inicio';
       const del = document.createElement('button'); del.className='ag-del'; del.type='button'; del.textContent='✕'; del.setAttribute('aria-label','Eliminar');
       thumb.append(im,cat,check,fav,del);
       if (r.is_featured){ const cv = document.createElement('span'); cv.className='ag-cover'; cv.textContent='Portada'; thumb.appendChild(cv); }
       const meta = document.createElement('div'); meta.className='ag-meta';
       meta.innerHTML = `<span class="chip f-${['JPG','PNG','WEBP'].includes(fmt)?fmt:'OTHER'}">${fmt}</span>
-        <span class="chip size ${wc}">${r.file_size?fmtBytes(r.file_size):'analizando…'}</span>`;
+        <span class="chip size ${wc}">${r.file_size?fmtBytes(r.file_size):(schemaOK?'analizando…':'—')}</span>`;
       const bar = document.createElement('div'); bar.className='ag-bar';
       bar.innerHTML = `<i class="${wc}" style="width:${r.file_size?Math.max(4,(r.file_size/max)*100):0}%"></i>`;
       card.append(thumb,meta,bar);
@@ -302,7 +332,7 @@ function renderAdminGallery(){
         card.classList.toggle('selected', selected.has(r.id));
         syncBulk();
       });
-      fav.addEventListener('click', e => { e.stopPropagation(); setFeatured(r, false); });
+      fav.addEventListener('click', e => { e.stopPropagation(); setFeatured(r,false); });
       del.addEventListener('click', async e => { e.stopPropagation(); await deleteRows([r]); });
       frag.appendChild(card);
     });
@@ -320,7 +350,7 @@ function renderAdminGallery(){
      <span>Más pesada <b>${heaviest?.file_size?fmtBytes(heaviest.file_size):'—'}</b></span>
      <span class="${heavyCount?'warn':''}">Sobre 3 MB <b>${heavyCount}</b></span>`;
 
-  const noThumb = rows.filter(r => !r.thumb_url).length;
+  const noThumb = schemaOK ? rows.filter(r => !r.thumb_url).length : 0;
   $('optimizeBtn').hidden = noThumb === 0;
   $('optCount').textContent = noThumb;
   syncBulk();
@@ -330,7 +360,7 @@ function syncBulk(){
   $('bulkBar').hidden = selected.size === 0;
   $('bulkCount').textContent = selected.size;
   const visible = filteredRows();
-  const allSel = visible.length > 0 && visible.every(r => selected.has(r.id));
+  const allSel = visible.length>0 && visible.every(r => selected.has(r.id));
   $('selectAllBtn').textContent = allSel ? 'Quitar selección' : 'Seleccionar todo';
   $('bulkFeature').disabled = selected.size !== 1;
 }
@@ -349,25 +379,42 @@ $('selectAllBtn').addEventListener('click', () => {
 });
 $('bulkClear').addEventListener('click', () => { selected.clear(); renderAdminGallery(); });
 
-/* ── portada ── */
+/* ── PORTADA (verificada contra la base) ── */
 async function setFeatured(row, silent){
-  const turnOff = row.is_featured;
+  if (!schemaOK){
+    $('schemaAlert').hidden = false;
+    $('schemaAlert').scrollIntoView({ behavior:'smooth', block:'center' });
+    return toast('Falta la columna is_featured. Ejecutá el SQL del cartel rojo.','err',5200);
+  }
+  const turnOff = !!row.is_featured;
+  const prev = rows.map(r => ({ id:r.id, v:!!r.is_featured }));
   rows.forEach(r => r.is_featured = (!turnOff && r.id === row.id));
   renderAdminGallery();
-  const clear = await supabase.from('portfolio_images').update({ is_featured:false }).eq('is_featured', true);
-  if (clear.error){ toast('No se pudo actualizar la portada: '+clear.error.message,'err'); await loadAdminGallery(); return; }
-  if (!turnOff){
-    const { error } = await supabase.from('portfolio_images').update({ is_featured:true }).eq('id', row.id);
-    if (error){ toast('No se pudo fijar la portada: '+error.message,'err'); await loadAdminGallery(); return; }
+
+  const clear = await supabase.from('portfolio_images').update({ is_featured:false }).eq('is_featured', true).select();
+  if (clear.error){
+    prev.forEach(p => { const r = rows.find(x=>x.id===p.id); if (r) r.is_featured = p.v; });
+    renderAdminGallery();
+    if (missingColumn(clear.error)){ $('schemaAlert').hidden = false; return toast('Falta la columna is_featured en Supabase.','err',5200); }
+    return toast('No se pudo actualizar la portada: '+clear.error.message,'err',5200);
   }
-  if (!silent) toast(turnOff ? 'Portada liberada: el inicio usa la foto más reciente.' : '★ Nueva portada del inicio.');
+  if (!turnOff){
+    const res = await supabase.from('portfolio_images').update({ is_featured:true }).eq('id', row.id).select();
+    if (res.error || !res.data || !res.data.length){
+      prev.forEach(p => { const r = rows.find(x=>x.id===p.id); if (r) r.is_featured = p.v; });
+      renderAdminGallery();
+      if (missingColumn(res.error)){ $('schemaAlert').hidden = false; return toast('Falta la columna is_featured en Supabase.','err',5200); }
+      return toast('La base no confirmó el guardado. Revisá las políticas RLS de UPDATE.','err',6000);
+    }
+  }
+  if (!silent) toast(turnOff ? 'Portada liberada: el inicio usa la más reciente.' : '★ Portada guardada. Ya se ve en el inicio.');
 }
 $('coverClear').addEventListener('click', () => { const m = rows.find(r => r.is_featured); if (m) setFeatured(m,false); });
-$('bulkFeature').addEventListener('click', () => { const list = selectedRows(); if (list.length === 1) setFeatured(list[0], false); });
+$('bulkFeature').addEventListener('click', () => { const l = selectedRows(); if (l.length===1) setFeatured(l[0],false); });
 
 /* ── metadata faltante ── */
 async function backfillMeta(){
-  if (metaRunning) return;
+  if (metaRunning || !schemaOK) return;
   const missing = rows.filter(r => !r.file_size || !r.file_format).slice(0,80);
   if (!missing.length) return;
   metaRunning = true;
@@ -395,7 +442,7 @@ async function backfillMeta(){
       const chip = card.querySelector('.chip.size'), wc = weightClass(r.file_size);
       if (chip){ chip.className='chip size '+wc; chip.textContent = r.file_size?fmtBytes(r.file_size):'—'; }
       const f = card.querySelector('.ag-meta .chip');
-      if (f){ f.className = 'chip f-' + (['JPG','PNG','WEBP'].includes(r.file_format)?r.file_format:'OTHER'); f.textContent = r.file_format; }
+      if (f){ f.className='chip f-'+(['JPG','PNG','WEBP'].includes(r.file_format)?r.file_format:'OTHER'); f.textContent=r.file_format; }
     }
   });
   metaRunning = false;
@@ -435,8 +482,8 @@ const selectedRows = () => rows.filter(r => selected.has(r.id));
 $('bulkApply').addEventListener('click', async () => {
   const list = selectedRows(); if (!list.length) return;
   const category = $('bulkCategory').value;
-  const { error } = await supabase.from('portfolio_images').update({ category }).in('id', list.map(r=>r.id));
-  if (error) return toast('No se pudo mover: '+error.message,'err');
+  const { data, error } = await supabase.from('portfolio_images').update({ category }).in('id', list.map(r=>r.id)).select();
+  if (error || !data?.length) return toast('No se pudo mover: '+(error?.message||'sin confirmar'),'err');
   list.forEach(r => r.category = category);
   toast(`${list.length} foto${list.length>1?'s':''} → ${category}`);
   renderAdminGallery(); renderStats();
@@ -444,7 +491,11 @@ $('bulkApply').addEventListener('click', async () => {
 $('bulkDuplicate').addEventListener('click', async () => {
   const list = selectedRows(); if (!list.length) return;
   const category = $('bulkCategory').value;
-  const copies = list.map(r => ({ title:null, category, image_url:r.image_url, thumb_url:r.thumb_url, file_size:r.file_size, file_format:r.file_format, is_featured:false }));
+  const copies = list.map(r => {
+    const c = { title:null, category, image_url:r.image_url };
+    if (schemaOK){ c.thumb_url=r.thumb_url; c.file_size=r.file_size; c.file_format=r.file_format; c.is_featured=false; }
+    return c;
+  });
   const { data, error } = await supabase.from('portfolio_images').insert(copies).select();
   if (error) return toast('No se pudo duplicar: '+error.message,'err');
   rows = [...(data||[]), ...rows];
@@ -452,7 +503,7 @@ $('bulkDuplicate').addEventListener('click', async () => {
   toast(`${copies.length} copia${copies.length>1?'s':''} en ${category} (sin ocupar espacio extra)`);
   renderAdminGallery(); renderStats();
 });
-$('bulkDelete').addEventListener('click', async () => { const list = selectedRows(); if (list.length) await deleteRows(list); });
+$('bulkDelete').addEventListener('click', async () => { const l = selectedRows(); if (l.length) await deleteRows(l); });
 
 async function deleteRows(list){
   const ok = await uiConfirm(`Eliminar ${list.length} foto${list.length>1?'s':''}`, 'Se borran del archivo y del servidor. Las copias que compartan el mismo archivo se conservan.');
@@ -563,7 +614,7 @@ function renderStats(){
     if (!items.length) return '';
     const w = items.reduce((a,r)=>a+(r.file_size||0),0);
     return `<div class="fmt-pill" style="border-color:${colors[f]}44"><b style="color:${colors[f]}">${items.length}</b><span>${f} · ${fmtBytes(w)}</span></div>`;
-  }).join('') || '<p class="pe-note">Todavía no hay fotos cargadas.</p>';
+  }).join('') || '<p class="pe-note center">Todavía no hay fotos cargadas.</p>';
 }
 
 /* ══════════ INIT ══════════ */
