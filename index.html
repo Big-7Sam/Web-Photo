@@ -1,208 +1,186 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content="Portfolio fotografico de Santiago: retratos, editorial, nocturno, eventos y proyectos personales." />
-<meta name="theme-color" content="#000000" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="Santiago Fotografia - Portfolio" />
-<meta property="og:description" content="Portfolio fotografico de Santiago: retratos, editorial, nocturno, eventos y proyectos personales." />
-<meta property="og:locale" content="es_AR" />
-<meta name="twitter:card" content="summary_large_image" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Santiago Fotografía — Captura el Instante</title>
+<meta name="description" content="Portfolio de Santiago: retratos, blanco y negro, gothic y fotografía urbana. Buenos Aires, Argentina.">
+<meta name="theme-color" content="#000000">
+<meta property="og:title" content="Santiago Fotografía — Captura el Instante">
+<meta property="og:description" content="Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Cpath d='M16 4l10 6v12l-10 6-10-6V10z' fill='none' stroke='%2300FF41' stroke-width='2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;700&family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Loader -->
-  <div class="loader" id="loader">
-    <div class="loader-logo">SP</div>
-    <div class="loader-bar"><div class="loader-progress"></div></div>
-    <div class="loader-lang" id="loaderLang">
-      <p>Elegí tu idioma · Choose your language</p>
-      <div class="loader-lang-btns">
-        <button onclick="chooseLang('es')">Español</button>
-        <button onclick="chooseLang('en')">English</button>
+
+<div class="loader" id="loader">
+  <div class="loader-logo">SP</div>
+  <div class="loader-bar"><i></i></div>
+  <p class="loader-txt">Revelando archivo</p>
+</div>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+<div class="grain"></div>
+
+<nav class="nav" id="nav">
+  <a href="#hero" class="nav-logo" id="navLogo">SP<span class="accent">.</span></a>
+  <ul class="nav-links">
+    <li><a href="#hero" data-section="hero">Inicio</a></li>
+    <li><a href="#portfolio" data-section="portfolio">Portfolio</a></li>
+    <li><a href="#about" data-section="about">Sobre mí</a></li>
+    <li><a href="#contact" data-section="contact">Contacto</a></li>
+  </ul>
+  <button class="nav-burger" id="navBurger" aria-label="Menú"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <ul>
+    <li><a href="#hero">Inicio</a></li>
+    <li><a href="#portfolio">Portfolio</a></li>
+    <li><a href="#about">Sobre mí</a></li>
+    <li><a href="#contact">Contacto</a></li>
+    <li class="menu-secret"><a href="admin.html">⬡</a></li>
+  </ul>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow g1"></div>
+  <div class="hero-glow g2"></div>
+  <div class="container hero-inner">
+    <div class="hero-content">
+      <p class="hero-kicker">Santiago Fotografía — Est. 2015</p>
+      <h1 class="hero-title"><span>CAPTURA</span><span>EL</span><span>INSTANTE</span></h1>
+      <p class="hero-subtitle">Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.</p>
+      <div class="hero-actions">
+        <a href="#portfolio" class="btn btn-primary"><span>Ver Portfolio</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+        <span class="hero-count"><b id="heroCount">—</b> obras en archivo</span>
       </div>
     </div>
+    <div class="hero-side">
+      <span>BUENOS AIRES</span><i></i><span>34°36′S 58°22′W</span>
+    </div>
   </div>
+  <div class="scroll-indicator"><span>SCROLL</span><div class="scroll-line"></div></div>
+</section>
 
-  <!-- Cursor -->
-  <div class="cursor-dot"></div>
-  <div class="cursor-ring"></div>
-
-  <!-- Grain -->
-  <div class="grain"></div>
-
-  <!-- Admin badge -->
-  <div class="admin-badge" id="adminBadge">
-    <span class="admin-dot"></span> Admin
-  </div>
-
-  <!-- Nav -->
-  <nav class="nav">
-    <a href="#hero" class="nav-logo">SP<span class="accent">.</span></a>
-    <ul class="nav-links">
-      <li><a href="#hero" data-section="hero">Inicio</a></li>
-      <li><a href="#portfolio" data-section="portfolio">Portfolio</a></li>
-      <li><a href="#about" data-section="about">Sobre mí</a></li>
-      <li><a href="#contact" data-section="contact">Contacto</a></li>
-    </ul>
-    <div class="nav-right" style="display:flex;align-items:center;gap:8px;">
-      <div class="lang-toggle">
-        <button class="lang-btn active" id="langEs" onclick="setLang('es')">ES</button>
-        <span class="lang-sep">/</span>
-        <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+<!-- PORTFOLIO -->
+<section class="sect portfolio" id="portfolio">
+  <div class="container">
+    <header class="section-head reveal">
+      <div>
+        <p class="section-kicker">— Galería</p>
+        <h2 class="section-title">Portfolio</h2>
       </div>
-      <button class="nav-burger" id="navBurger" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-    </div><!-- /nav-right -->
-  </nav>
-
-  <div class="mobile-menu" id="mobileMenu">
-    <ul>
-      <li><a href="#hero">Inicio</a></li>
-      <li><a href="#portfolio">Portfolio</a></li>
-      <li><a href="#about">Sobre mí</a></li>
-      <li><a href="#contact">Contacto</a></li>
-      <li class="menu-secret"><a href="admin.html" title="⬡">⬡</a></li>
-    </ul>
+      <p class="head-note"><b id="portfolioCount">0</b> imágenes · click para ampliar</p>
+    </header>
+    <div class="categories" id="categories"></div>
+    <div class="gallery" id="gallery"></div>
   </div>
+</section>
 
-  <!-- HERO -->
-  <section class="hero" id="hero">
-    <div class="hero-grid"></div>
-    <div class="hero-content" style="margin:0 auto;text-align:center;">
-      <p class="hero-kicker">Santiago Fotografía — Est. 2015</p>
-      <h1 class="hero-title">
-        <span>CAPTURA</span>
-        <span>EL</span>
-        <span>INSTANTE</span>
-      </h1>
-      <p class="hero-subtitle">Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.</p>
-      <a href="#portfolio" class="btn btn-primary">
-        <span>Ver Portfolio</span>
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+<!-- ABOUT -->
+<section class="sect about" id="about">
+  <div class="container about-grid">
+    <div class="about-photo reveal">
+      <img id="profileImg" alt="Santiago" decoding="async">
+      <div class="about-photo-frame"></div>
+      <span class="about-tag"> Retrato / 35mm</span>
+    </div>
+    <div class="about-content reveal">
+      <p class="section-kicker">— Sobre mí</p>
+      <h2 class="section-title">La historia<br>detrás del lente</h2>
+      <p class="about-bio" id="bioText">Soy Santiago, fotógrafo profesional con más de una década documentando la vida a través del lente. Especializado en retratos, fotografía urbana y proyectos editoriales con una estética oscura y cinematográfica.</p>
+      <div class="stats">
+        <div class="stat"><span class="stat-num">10+</span><span class="stat-lbl">Años</span></div>
+        <div class="stat"><span class="stat-num">300+</span><span class="stat-lbl">Proyectos</span></div>
+        <div class="stat"><span class="stat-num">12</span><span class="stat-lbl">Premios</span></div>
+      </div>
+      <p class="signature">Santiago<span class="accent">.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section class="sect contact" id="contact">
+  <div class="contact-aura"></div>
+  <div class="container">
+    <header class="contact-head reveal">
+      <p class="section-kicker">— Contacto</p>
+      <h2 class="section-title">HABLEMOS<span class="accent">.</span></h2>
+      <p class="contact-lead">Retratos, editoriales, eventos y colaboraciones creativas. Elegí tu canal.</p>
+    </header>
+
+    <div class="social-grid">
+      <a class="social-card reveal" id="cEmail" href="mailto:hola@santiagofoto.com" style="--net:#00E5FF;--d:0ms">
+        <span class="sc-index">01</span>
+        <span class="sc-icon"><svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v.35l-10 6.25L2 6.35V6Zm0 2.6V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8.6l-9.47 5.92a1 1 0 0 1-1.06 0L2 8.6Z"/></svg></span>
+        <span class="sc-name">Email</span>
+        <span class="sc-value" id="cEmailVal">hola@santiagofoto.com</span>
+        <span class="sc-go">Escribir<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a class="social-card reveal" id="cWhatsapp" href="https://wa.me/541100000000" target="_blank" rel="noopener" style="--net:#00FF41;--d:90ms">
+        <span class="sc-index">02</span>
+        <span class="sc-icon"><svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.08-.3-.15-1.26-.47-2.4-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.44-.53.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.66-1.61-.91-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.03 1.02-1.03 2.48s1.06 2.87 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.18-1.42-.08-.12-.28-.2-.57-.34M12.05 21.8h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.89 9.89-9.89 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.89 6.99c0 5.45-4.43 9.89-9.88 9.89m8.41-18.3A11.82 11.82 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.69 1.45c6.55 0 11.89-5.34 11.89-11.89 0-3.18-1.24-6.17-3.48-8.41"/></svg></span>
+        <span class="sc-name">WhatsApp</span>
+        <span class="sc-value" id="cWhatsappVal">+54 11 0000-0000</span>
+        <span class="sc-go">Chatear<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a class="social-card reveal" id="cInstagram" href="https://instagram.com/santiagofoto" target="_blank" rel="noopener" style="--net:#FF2D95;--d:180ms">
+        <span class="sc-index">03</span>
+        <span class="sc-icon"><svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 0 1 12 7.5Zm0 2A2.5 2.5 0 1 0 14.5 12 2.5 2.5 0 0 0 12 9.5Zm5.6-4.1a1.1 1.1 0 1 1-1.1 1.1 1.1 1.1 0 0 1 1.1-1.1Z"/></svg></span>
+        <span class="sc-name">Instagram</span>
+        <span class="sc-value" id="cInstagramVal">@santiagofoto</span>
+        <span class="sc-go">Seguir<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
       </a>
     </div>
-    <div class="scroll-indicator">
-      <span>SCROLL</span>
-      <div class="scroll-line"></div>
-    </div>
-  </section>
-  <section class="portfolio" id="portfolio">
-    <div class="container">
-      <header class="section-head">
-        <p class="section-kicker">Galería</p>
-        <h2 class="section-title">Portfolio</h2>
-      </header>
-
-      <!-- Toolbar: categorias + toggle columnas -->
-      <div class="port-toolbar">
-        <div class="categories" id="categories"></div>
-        <div class="col-toggle" id="colToggle"></div>
-      </div>
-
-      <!-- Box scroll interno -->
-      <div class="gallery-wrap">
-        <div class="gallery" id="gallery"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ABOUT -->
-  <section class="about" id="about">
-    <div class="container about-grid">
-      <div class="about-photo">
-        <img id="profileImg" src="" alt="Santiago">
-        <div class="about-photo-frame"></div>
-      </div>
-      <div class="about-content">
-        <p class="section-kicker">Sobre mí</p>
-        <h2 class="section-title">Detrás del lente</h2>
-        <p class="about-bio" id="bioText">Cargando...</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- CONTACT -->
-  <section class="contact" id="contact">
-    <div class="container contact-grid">
-      <div class="contact-info">
-        <p class="section-kicker">Contacto</p>
-        <h2 class="section-title" id="contactTitle">Cargando...</h2>
-        <p class="contact-desc" id="contactSubtitle"></p>
-        <ul class="contact-list" id="contactList">
-          <li><span class="c-label">Email</span><a id="cEmail" href="mailto:hola@santiagofoto.com">hola@santiagofoto.com</a></li>
-          <li><span class="c-label">Ubicación</span><span id="cLocation">Buenos Aires, Argentina</span></li>
-          <li><span class="c-label">Instagram</span><a id="cInstagram" href="#" target="_blank">@santiagofoto</a></li>
-        </ul>
-      </div>
-
-      <form class="contact-form" id="contactForm" novalidate>
-        <div class="field">
-          <label>Nombre</label>
-          <input type="text" name="name" required>
-          <span class="field-error">Escribe tu nombre</span>
-        </div>
-        <div class="field">
-          <label>Email</label>
-          <input type="email" name="email" required>
-          <span class="field-error">Email inválido</span>
-        </div>
-
-        <div class="field">
-          <label>Mensaje</label>
-          <textarea name="message" rows="5" required></textarea>
-          <span class="field-error">Escribe un mensaje</span>
-        </div>
-        <button type="submit" class="btn btn-primary btn-full">
-          <span>Enviar mensaje</span>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-        </button>
-        <div class="form-success" id="formSuccess">
-          <span class="ok-dot"></span>
-          ¡Mensaje enviado! Te responderé pronto.
-        </div>
-      </form>
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <footer class="footer">
-    <div class="container footer-inner">
-      <a href="#" class="footer-logo">SP<span class="accent">.</span></a>
-      <p class="footer-copy">© <span id="year"></span> Santiago Fotografía. Todos los derechos reservados.</p>
-      <a href="admin.html" class="footer-secret" title="⬡">⬡</a>
-    </div>
-  </footer>
-
-  <!-- LIGHTBOX -->
-  <div class="lightbox" id="lightbox">
-    <button class="lb-close" id="lbClose" aria-label="Cerrar">✕</button>
-    <button class="lb-prev" id="lbPrev" aria-label="Anterior">‹</button>
-    <button class="lb-next" id="lbNext" aria-label="Siguiente">›</button>
-    <div class="lb-stage">
-      <img id="lbImg" src="" alt="">
-      <div class="lb-meta">
-        <span id="lbCategory"></span>
-        <span id="lbCounter"></span>
-      </div>
-    </div>
   </div>
+</section>
 
-  <!-- EmailJS — reemplazá las 3 variables con tus datos -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <script>
-    emailjs.init('TU_PUBLIC_KEY'); // ← reemplazar
-    window.EMAILJS_SERVICE_ID  = 'TU_SERVICE_ID';   // ← reemplazar
-    window.EMAILJS_TEMPLATE_ID = 'TU_TEMPLATE_ID';  // ← reemplazar
-  </script>
-  <script type="module" src="supabase.js"></script>
-  <script type="module" src="app.js"></script>
+<footer class="footer">
+  <div class="container footer-inner">
+    <a href="#hero" class="footer-logo">SP<span class="accent">.</span></a>
+    <p class="footer-copy">© <span id="year"></span> Santiago Fotografía · <span id="footLocation">Buenos Aires, Argentina</span></p>
+    <a href="admin.html" class="footer-secret" aria-label="Acceso">⬡</a>
+  </div>
+</footer>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+  <div class="lb-top">
+    <span class="lb-cat" id="lbCategory"></span>
+    <span class="lb-count" id="lbCounter"></span>
+    <button class="lb-close" id="lbClose" aria-label="Cerrar">✕</button>
+  </div>
+  <button class="lb-nav lb-prev" id="lbPrev" aria-label="Anterior">‹</button>
+  <img id="lbImg" alt="">
+  <button class="lb-nav lb-next" id="lbNext" aria-label="Siguiente">›</button>
+  <p class="lb-hint">← → navegar · ESC cerrar</p>
+</div>
+
+<!-- ACCESO OCULTO -->
+<div class="secret-modal" id="secretModal" aria-hidden="true">
+  <div class="sm-card">
+    <button class="sm-close" id="smClose" aria-label="Cerrar">✕</button>
+    <p class="section-kicker">— Acceso restringido</p>
+    <h3 class="sm-title">ADMIN</h3>
+    <form id="secretForm">
+      <div class="field"><label>Email</label><input type="email" id="smEmail" required autocomplete="username"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="smPass" required autocomplete="current-password"></div>
+      <button class="btn btn-primary btn-full" type="submit"><span>Entrar</span></button>
+      <p class="sm-msg" id="smMsg"></p>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>

@@ -1,456 +1,223 @@
 import { supabase, publicUrl } from './supabase.js';
 
-/* ============ COPYRIGHT — bloquear click derecho ============ */
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('dragstart',   e => e.preventDefault());
-document.addEventListener('keydown', e => {
-  // Bloquear Ctrl+S, Ctrl+U, Ctrl+Shift+I
-  if ((e.ctrlKey||e.metaKey) && ['s','u'].includes(e.key.toLowerCase())) e.preventDefault();
-});
-
-/* ============ CURSOR (GPU ACCELERATED) ============ */
-const dot = document.querySelector('.cursor-dot');
-const ring = document.querySelector('.cursor-ring');
-// Activar para mouse Y para stylus (pointer fino) en cualquier tamaño de pantalla
-const hasFinePointer = window.matchMedia('(pointer:fine)').matches;
-if (dot && ring && hasFinePointer) {
-  let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
-  let ringX = mouseX, ringY = mouseY;
-  window.addEventListener('mousemove', e => {
-    mouseX = e.clientX; mouseY = e.clientY;
-    dot.style.transform = `translate(${mouseX}px, ${mouseY}px) translate(-50%, -50%)`;
+/* ══════════ CURSOR (1 solo loop, se apaga en reposo) ══════════ */
+(function cursor(){
+  const dot = document.querySelector('.cursor-dot');
+  const ring = document.querySelector('.cursor-ring');
+  const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if (!fine || !dot || !ring) { dot?.remove(); ring?.remove(); return; }
+  document.documentElement.classList.add('has-cursor');
+  let x = innerWidth / 2, y = innerHeight / 2, rx = x, ry = y, raf = 0;
+  const place = (el, px, py) => { el.style.transform = `translate3d(${px}px,${py}px,0) translate(-50%,-50%)`; };
+  place(dot, x, y); place(ring, x, y);
+  dot.style.opacity = ring.style.opacity = 1;
+  function loop(){
+    rx += (x - rx) * .22; ry += (y - ry) * .22;
+    place(ring, rx, ry);
+    if (Math.abs(x - rx) > .25 || Math.abs(y - ry) > .25) raf = requestAnimationFrame(loop);
+    else { place(ring, x, y); raf = 0; }
+  }
+  addEventListener('mousemove', e => {
+    x = e.clientX; y = e.clientY; place(dot, x, y);
+    if (!raf) raf = requestAnimationFrame(loop);
   }, { passive: true });
-  function animateRing() {
-    ringX += (mouseX - ringX) * 0.15;
-    ringY += (mouseY - ringY) * 0.15;
-    ring.style.transform = `translate(${ringX}px, ${ringY}px) translate(-50%, -50%)`;
-    requestAnimationFrame(animateRing);
-  }
-  animateRing();
-  document.querySelectorAll('a, button, .gallery-item, input, select, textarea').forEach(el => {
-    el.addEventListener('mouseenter', () => ring.classList.add('active'), { passive: true });
-    el.addEventListener('mouseleave', () => ring.classList.remove('active'), { passive: true });
-  });
-} else if (dot && ring) { dot.style.display='none'; ring.style.display='none'; }
+  addEventListener('pointerdown', () => ring.classList.add('down'), { passive: true });
+  addEventListener('pointerup', () => ring.classList.remove('down'), { passive: true });
+  document.addEventListener('mouseover', e => {
+    const t = e.target instanceof Element && e.target.closest('a,button,input,select,textarea,.gallery-item');
+    ring.classList.toggle('active', !!t);
+  }, { passive: true });
+  document.addEventListener('mouseleave', () => { dot.style.opacity = ring.style.opacity = 0; });
+  document.addEventListener('mouseenter', () => { dot.style.opacity = ring.style.opacity = 1; });
+})();
 
-/* ============ SISTEMA DE IDIOMA ============ */
-const T = {
-  es: {
-    nav: ['Inicio','Portfolio','Sobre Mí','Contacto'],
-    hero_kicker: 'Santiago Fotografía — Est. 2015',
-    hero_lines: ['CAPTURA','EL','INSTANTE'],
-    hero_sub: 'Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.',
-    hero_btn: 'Ver Portfolio',
-    gallery_kicker: 'Galería', gallery_title: 'Portfolio',
-    cats: { 'Todo':'Todo','Retratos':'Retratos','Editorial':'Editorial','Dark':'Dark' },
-    about_kicker: 'Sobre mí', about_title: 'Detrás del lente',
-    contact_kicker: 'Contacto',
-    form_name: 'Nombre', form_email: 'Email', form_msg: 'Mensaje', form_send: 'Enviar mensaje',
-    form_sending: 'Enviando...',
-    footer_rights: 'Todos los derechos reservados.',
-    scroll: 'SCROLL', gallery_empty: '— No hay imágenes en esta categoría —',
-  },
-  en: {
-    nav: ['Home','Portfolio','About Me','Contact'],
-    hero_kicker: 'Santiago Photography — Est. 2015',
-    hero_lines: ['CAPTURE','THE','MOMENT'],
-    hero_sub: 'Every image tells a unique story. Moments that last beyond time.',
-    hero_btn: 'View Portfolio',
-    gallery_kicker: 'Gallery', gallery_title: 'Portfolio',
-    cats: { 'Todo':'All','Retratos':'Portraits','Editorial':'Editorial','Dark':'Dark' },
-    about_kicker: 'About me', about_title: 'Behind the lens',
-    contact_kicker: 'Contact',
-    form_name: 'Name', form_email: 'Email', form_msg: 'Message', form_send: 'Send message',
-    form_sending: 'Sending...',
-    footer_rights: 'All rights reserved.',
-    scroll: 'SCROLL', gallery_empty: '— No images in this category —',
-  }
-};
+/* ══════════ LOADER ══════════ */
+const hideLoader = () => document.getElementById('loader')?.classList.add('hide');
+addEventListener('load', () => setTimeout(hideLoader, 900));
+setTimeout(hideLoader, 2600);
 
-let currentLang = localStorage.getItem('sf_lang') || null;
-
-function setLang(lang) {
-  currentLang = lang;
-  localStorage.setItem('sf_lang', lang);
-  const t = T[lang];
-  document.body.classList.add('lang-changing');
-  document.documentElement.lang = lang;
-  document.getElementById('langEs')?.classList.toggle('active', lang==='es');
-  document.getElementById('langEn')?.classList.toggle('active', lang==='en');
-  // Nav links
-  document.querySelectorAll('.nav-links a').forEach((a,i) => { if(t.nav[i]) a.textContent = t.nav[i]; });
-  document.querySelectorAll('.mobile-menu a').forEach((a,i) => { if(t.nav[i]) a.textContent = t.nav[i]; });
-  // Hero
-  document.querySelectorAll('.hero-title span').forEach((s,i) => { if(t.hero_lines[i]) s.textContent = t.hero_lines[i]; });
-  const heroKicker = document.querySelector('.hero-kicker');         if(heroKicker) heroKicker.textContent = t.hero_kicker;
-  const heroSub    = document.querySelector('.hero-subtitle');       if(heroSub)    heroSub.textContent    = t.hero_sub;
-  const heroBtn    = document.querySelector('.hero .btn span');      if(heroBtn)    heroBtn.textContent    = t.hero_btn;
-  const scrollEl   = document.querySelector('.scroll-indicator span'); if(scrollEl) scrollEl.textContent  = t.scroll;
-  // Gallery
-  const gKicker = document.querySelector('.portfolio .section-kicker'); if(gKicker) gKicker.textContent = t.gallery_kicker;
-  const gTitle  = document.querySelector('.portfolio .section-title');  if(gTitle)  gTitle.textContent  = t.gallery_title;
-  // About
-  const aKicker = document.querySelector('.about .section-kicker'); if(aKicker) aKicker.textContent = t.about_kicker;
-  const aTitle  = document.querySelector('.about .section-title');  if(aTitle)  aTitle.textContent  = t.about_title;
-  // Contact
-  const cKicker = document.querySelector('.contact .section-kicker'); if(cKicker) cKicker.textContent = t.contact_kicker;
-  // Form
-  const fName = document.querySelector('[name=name]');    if(fName) fName.placeholder = t.form_name;
-  const fMsg  = document.querySelector('[name=message]'); if(fMsg)  fMsg.placeholder  = t.form_msg;
-  const fBtn  = document.querySelector('.contact-form [type=submit] span'); if(fBtn) fBtn.textContent = t.form_send;
-  document.querySelectorAll('.contact-form .field label').forEach((l,i) => {
-    const map = [t.form_name, t.form_email, t.form_msg];
-    if(map[i]) l.textContent = map[i];
-  });
-  const footerCopy = document.querySelector('.footer-copy');
-  const yearEl = document.getElementById('year');
-  if (footerCopy && yearEl) footerCopy.innerHTML = `© <span id="year">${new Date().getFullYear()}</span> ${t.hero_kicker.split(' — ')[0]}. ${t.footer_rights}`;
-  if (window.profileData) renderProfile();
-  // Re-render categories con nombres traducidos
-  if(typeof renderCategories === 'function') renderCategories();
-  window.setTimeout(() => document.body.classList.remove('lang-changing'), 180);
-}
-
-function chooseLang(lang) {
-  document.getElementById('loaderLang')?.classList.remove('show');
-  setLang(lang);
-  setTimeout(() => {
-    const l = document.getElementById('loader');
-    if(l){ l.classList.add('hide'); setTimeout(()=>l.remove(),700); }
-  }, 300);
-}
-
-// Exponer al scope global — necesario porque app.js es type="module"
-window.setLang    = setLang;
-window.chooseLang = chooseLang;
-
-/* ============ LOADER ============ */
-function hideLoader(){
-  const l = document.getElementById('loader');
-  if (!l) return;
-  l.classList.add('hide');
-  setTimeout(() => { if (l.parentNode) l.remove(); }, 700);
-}
-window.addEventListener('load', () => {
-  if (localStorage.getItem('sf_lang')) {
-    setTimeout(hideLoader, 1200); // ya eligió idioma
-  } else {
-    setTimeout(() => document.getElementById('loaderLang')?.classList.add('show'), 1300);
-    setTimeout(() => { if(!localStorage.getItem('sf_lang')) chooseLang('es'); }, 15000);
-  }
-});
-setTimeout(() => { if(localStorage.getItem('sf_lang')) hideLoader(); }, 3500);
-
-/* ============ NAV & MOBILE ============ */
-const nav = document.querySelector('.nav');
-const navLinks = document.querySelectorAll('.nav-links a');
-const sections = document.querySelectorAll('section[id]');
-window.addEventListener('scroll', () => {
-  nav?.classList.toggle('scrolled', window.scrollY > 50);
-  // Si llegó al fondo de la página, activar último item
-  const atBottom = window.scrollY + window.innerHeight >= document.body.offsetHeight - 60;
-  if (atBottom) {
-    navLinks.forEach(l => l.classList.remove('active'));
-    navLinks[navLinks.length - 1]?.classList.add('active');
-    return;
-  }
-  let current = '';
-  sections.forEach(s => { if (window.scrollY + 200 >= s.offsetTop) current = s.id; });
-  navLinks.forEach(l => l.classList.toggle('active', l.dataset.section === current));
+/* ══════════ NAV ══════════ */
+const nav = document.getElementById('nav');
+let navTick = false;
+addEventListener('scroll', () => {
+  if (navTick) return;
+  navTick = true;
+  requestAnimationFrame(() => { nav.classList.toggle('scrolled', scrollY > 40); navTick = false; });
 }, { passive: true });
 
+const links = [...document.querySelectorAll('.nav-links a')];
+const secObserver = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    if (!en.isIntersecting) return;
+    links.forEach(l => l.classList.toggle('active', l.dataset.section === en.target.id));
+  });
+}, { rootMargin: '-45% 0px -50% 0px' });
+document.querySelectorAll('section[id]').forEach(s => secObserver.observe(s));
+
 const burger = document.getElementById('navBurger');
-const mobMenu = document.getElementById('mobileMenu');
-burger?.addEventListener('click', () => { burger.classList.toggle('open'); mobMenu?.classList.toggle('open'); });
-mobMenu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { burger.classList.remove('open'); mobMenu.classList.remove('open'); }));
+const mob = document.getElementById('mobileMenu');
+burger.addEventListener('click', () => { burger.classList.toggle('open'); mob.classList.toggle('open'); });
+mob.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { burger.classList.remove('open'); mob.classList.remove('open'); }));
 document.getElementById('year').textContent = new Date().getFullYear();
 
-/* ============ PORTFOLIO ============ */
-let allImages = [];
-const categories = ['Todo','Retratos','Editorial','Dark'];
-const CATEGORY_ALIASES = {
-  'Blanco y Negro': 'Retratos',
-  'Gothic': 'Dark',
-  'Urbano': 'Dark',
-  'Nocturno': 'Dark'
-};
-let activeCat = 'Todo';
+/* ══════════ REVEAL ══════════ */
+const revealIO = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add('in'); revealIO.unobserve(e.target); }
+}), { threshold: .06, rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealIO.observe(el));
+
+/* ══════════ PORTFOLIO ══════════ */
+const CATS = ['Todo', 'Blanco y Negro', 'Retratos', 'Gothic', 'Urbano'];
+let allImages = [], activeCat = 'Todo', viewList = [];
 const catsEl = document.getElementById('categories');
 const galleryEl = document.getElementById('gallery');
 
-// Helper: obtener categorías reales de una foto
-function getCats(img){
-  const raw = (img.categories && img.categories.length > 0) ? img.categories : [img.category];
-  return [...new Set(raw.map(cat => CATEGORY_ALIASES[cat] || cat).filter(Boolean))];
-}
-
-function sortImages(images){
-  return [...images].sort((a, b) => {
-    const orderA = Number.isFinite(Number(a.sort_order)) ? Number(a.sort_order) : Number.MAX_SAFE_INTEGER;
-    const orderB = Number.isFinite(Number(b.sort_order)) ? Number(b.sort_order) : Number.MAX_SAFE_INTEGER;
-    if (orderA !== orderB) return orderA - orderB;
-    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-  });
-}
-
-function applyFeaturedHero(){
-  const hero = document.querySelector('.hero');
-  const featured = allImages.find(img => img.is_featured);
-  if (!hero || !featured?.image_url) return;
-  hero.style.setProperty('--hero-image', `url("${featured.image_url}")`);
-  hero.classList.add('has-featured');
-}
-
 function renderCategories(){
-  catsEl.innerHTML = '';
-  categories.forEach(cat => {
-    // Contar usando todas las categorías de cada foto, no solo la primaria
-    const count = cat === 'Todo'
-      ? allImages.length
-      : allImages.filter(i => getCats(i).includes(cat)).length;
-    const btn = document.createElement('button');
-    btn.className = 'cat-btn' + (cat === activeCat ? ' active' : '');
-    const t = T[currentLang || 'es'];
-    const displayName = (t && t.cats && t.cats[cat]) ? t.cats[cat] : cat;
-    btn.innerHTML = `${displayName}<span class="cat-count">${count}</span>`;
-    btn.addEventListener('click', () => { activeCat = cat; renderCategories(); renderGallery(); });
-    catsEl.appendChild(btn);
+  const frag = document.createDocumentFragment();
+  CATS.forEach(cat => {
+    const n = cat === 'Todo' ? allImages.length : allImages.filter(i => i.category === cat).length;
+    const b = document.createElement('button');
+    b.className = 'cat-btn' + (cat === activeCat ? ' active' : '');
+    b.innerHTML = `${cat}<span class="cat-count">${n}</span>`;
+    b.addEventListener('click', () => { activeCat = cat; renderCategories(); renderGallery(); });
+    frag.appendChild(b);
   });
+  catsEl.replaceChildren(frag);
 }
 
 function renderGallery(){
-  const items = activeCat === 'Todo'
-    ? allImages
-    : allImages.filter(i => getCats(i).includes(activeCat));
-
-  lbFilteredImages = [...items]; // ← guardar lista filtrada para lightbox
-  galleryEl.innerHTML = '';
-  galleryEl.className = 'gallery';
-  const wrap = document.querySelector('.gallery-wrap');
-  if (wrap) wrap.scrollTop = 0;
-
-  if (!items.length) {
-    const t = T[currentLang || 'es'];
-    galleryEl.innerHTML = `<div class="gallery-empty">${t.gallery_empty}</div>`;
+  viewList = activeCat === 'Todo' ? allImages : allImages.filter(i => i.category === activeCat);
+  document.getElementById('portfolioCount').textContent = viewList.length;
+  if (!viewList.length){
+    galleryEl.innerHTML = '<div class="gallery-empty">— Sin imágenes en esta categoría —</div>';
     return;
   }
-
-  items.forEach((img, idx) => {
-    const div = document.createElement('div');
-    div.className = 'gallery-item';
-    div.style.animationDelay = `${Math.min(idx * 0.04, 0.6)}s`;
-    // Sin tag de categoría en público
-    div.innerHTML = `<img src="${img.image_url}" alt="" draggable="false" loading="lazy">`;
-    div.addEventListener('click', () => openLightbox(idx)); // índice filtrado
-    galleryEl.appendChild(div);
+  const frag = document.createDocumentFragment();
+  viewList.forEach((img, i) => {
+    const d = document.createElement('div');
+    d.className = 'gallery-item reveal';
+    d.style.setProperty('--d', `${Math.min(i, 8) * 45}ms`);
+    const im = document.createElement('img');
+    im.src = img.thumb_url || img.image_url;
+    im.alt = img.category || 'Fotografía';
+    im.loading = 'lazy'; im.decoding = 'async';
+    const ov = document.createElement('div');
+    ov.className = 'gallery-overlay';
+    ov.innerHTML = `<span>${img.category || ''}</span><i>⤢</i>`;
+    d.append(im, ov);
+    d.addEventListener('click', () => openLightbox(i));
+    frag.appendChild(d);
+    revealIO.observe(d);
   });
+  galleryEl.replaceChildren(frag);
 }
 
 async function loadImages(){
-  try {
-    const { data } = await supabase
-      .from('portfolio_images').select('*').order('created_at', { ascending: false });
-    allImages = sortImages(data || []);
-    applyFeaturedHero();
-    renderCategories(); renderGallery();
-  } catch(err) { console.error('Error cargando imágenes:', err); }
+  const { data, error } = await supabase.from('portfolio_images').select('*').order('created_at', { ascending: false });
+  if (error){ console.error(error); galleryEl.innerHTML = '<div class="gallery-empty">— No se pudo cargar el archivo —</div>'; return; }
+  allImages = data || [];
+  document.getElementById('heroCount').textContent = allImages.length;
+  renderCategories(); renderGallery();
 }
 
-/* ============ LIGHTBOX ============ */
-const lightbox = document.getElementById('lightbox');
+/* ══════════ LIGHTBOX ══════════ */
+const lb = document.getElementById('lightbox');
+const lbImg = document.getElementById('lbImg');
 let lbIdx = 0;
-let lbFilteredImages = []; // fotos actualmente visibles (respeta filtro)
-function openLightbox(idx){
-  lbIdx = idx;
-  const img = lbFilteredImages[idx]; // usar lista filtrada
-  if (!img) return;
-  document.getElementById('lbImg').src = img.image_url;
-  document.getElementById('lbCategory').textContent = '';
-  document.getElementById('lbCounter').textContent = `${idx+1} / ${lbFilteredImages.length}`;
-  document.getElementById('lightbox').classList.add('open');
+
+function openLightbox(i){
+  if (!viewList.length) return;
+  lbIdx = (i + viewList.length) % viewList.length;
+  const img = viewList[lbIdx];
+  lbImg.src = img.image_url;
+  lbImg.alt = img.category || 'Fotografía';
+  document.getElementById('lbCategory').textContent = img.category || '';
+  document.getElementById('lbCounter').textContent = `${lbIdx + 1} / ${viewList.length}`;
+  lb.classList.add('open');
   document.body.style.overflow = 'hidden';
+  [1, -1].forEach(d => { const n = viewList[(lbIdx + d + viewList.length) % viewList.length]; if (n) new Image().src = n.image_url; });
 }
-function closeLightbox(){ lightbox.classList.remove('open'); document.body.style.overflow = ''; }
+function closeLightbox(){ lb.classList.remove('open'); document.body.style.overflow = ''; lbImg.removeAttribute('src'); }
 document.getElementById('lbClose').addEventListener('click', closeLightbox);
-document.getElementById('lbPrev').addEventListener('click', () => openLightbox((lbIdx-1+lbFilteredImages.length)%lbFilteredImages.length));
-document.getElementById('lbNext').addEventListener('click', () => openLightbox((lbIdx+1)%lbFilteredImages.length));
-lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
-
-// ── Swipe táctil en mobile ──────────────────────────────────
-let _swipeX = 0;
-lightbox.addEventListener('touchstart', e => {
-  _swipeX = e.touches[0].clientX;
-}, { passive: true });
-lightbox.addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - _swipeX;
-  if (Math.abs(dx) < 40) return; // umbral mínimo
-  if (dx < 0) openLightbox((lbIdx + 1) % lbFilteredImages.length);
-  else         openLightbox((lbIdx - 1 + lbFilteredImages.length) % lbFilteredImages.length);
-}, { passive: true });
-document.addEventListener('keydown', e => {
-  if (!lightbox.classList.contains('open')) return;
+document.getElementById('lbPrev').addEventListener('click', () => openLightbox(lbIdx - 1));
+document.getElementById('lbNext').addEventListener('click', () => openLightbox(lbIdx + 1));
+lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
+addEventListener('keydown', e => {
+  if (!lb.classList.contains('open')) return;
   if (e.key === 'Escape') closeLightbox();
-  if (e.key === 'ArrowLeft') document.getElementById('lbPrev').click();
-  if (e.key === 'ArrowRight') document.getElementById('lbNext').click();
+  if (e.key === 'ArrowLeft') openLightbox(lbIdx - 1);
+  if (e.key === 'ArrowRight') openLightbox(lbIdx + 1);
 });
+let touchX = null;
+lb.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; }, { passive: true });
+lb.addEventListener('touchend', e => {
+  if (touchX === null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  if (Math.abs(dx) > 55) openLightbox(lbIdx + (dx < 0 ? 1 : -1));
+  touchX = null;
+}, { passive: true });
 
-/* ============ PERFIL / CONTACTO ============ */
+/* ══════════ PERFIL + CONTACTO ══════════ */
 async function loadProfile(){
   const { data } = await supabase.from('profile').select('*').limit(1).maybeSingle();
-  if (data) {
-    window.profileData = data;
-    renderProfile();
-  }
-}
-
-function renderProfile(){
-  const data = window.profileData;
   if (!data) return;
   if (data.profile_image) document.getElementById('profileImg').src = publicUrl(data.profile_image);
-  const bioSet = parseBioSet(data.bio, data.bio_en);
-  const bio = currentLang === 'en' ? (bioSet.en || bioSet.es) : (bioSet.es || bioSet.en);
-  if (bio) document.getElementById('bioText').textContent = bio;
+  if (data.bio) document.getElementById('bioText').textContent = data.bio;
 }
 
-function parseBioSet(bio, bioEn){
-  if (bio && typeof bio === 'string') {
-    try {
-      const parsed = JSON.parse(bio);
-      if (parsed && typeof parsed === 'object' && ('es' in parsed || 'en' in parsed)) {
-        return { es: parsed.es || '', en: parsed.en || bioEn || '' };
-      }
-    } catch {}
-  }
-  return { es: bio || '', en: bioEn || '' };
-}
 async function loadSettings(){
   const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
   if (!data) return;
-  const map = { cEmail:'email', cWhatsapp:'whatsapp', cLocation:'location', cInstagram:'instagram' };
-  Object.entries(map).forEach(([id, key]) => {
-    const el = document.getElementById(id); if (!el || !data[key]) return;
-    el.textContent = data[key];
-    if (id === 'cEmail') el.href = 'mailto:'+data[key];
-    if (id === 'cWhatsapp') el.href = 'https://wa.me/' + data[key].replace(/\D/g,'');
-    if (id === 'cInstagram') el.href = data[key].startsWith('http') ? data[key] : 'https://instagram.com/'+data[key].replace('@','');
-  });
-  // Título y subtítulo del contacto desde Supabase
-  const titleEl = document.getElementById('contactTitle');
-  const subEl   = document.getElementById('contactSubtitle');
-  if (titleEl && data.contact_title)    titleEl.textContent = data.contact_title;
-  if (subEl   && data.contact_subtitle) subEl.textContent   = data.contact_subtitle;
-  // Logo personalizable
-  if (data.logo_text) {
-    document.querySelectorAll('.nav-logo, .footer-logo').forEach(el => {
-      if (el.firstChild) el.firstChild.textContent = data.logo_text;
-    });
-    document.title = data.logo_text + ' — Fotografía';
+  if (data.email){
+    document.getElementById('cEmail').href = 'mailto:' + data.email;
+    document.getElementById('cEmailVal').textContent = data.email;
   }
+  if (data.whatsapp){
+    document.getElementById('cWhatsapp').href = 'https://wa.me/' + data.whatsapp.replace(/\D/g, '');
+    document.getElementById('cWhatsappVal').textContent = data.whatsapp;
+  }
+  if (data.instagram){
+    const raw = data.instagram.trim();
+    const url = raw.startsWith('http') ? raw : 'https://instagram.com/' + raw.replace(/^@/, '');
+    document.getElementById('cInstagram').href = url;
+    document.getElementById('cInstagramVal').textContent = raw.startsWith('http') ? '@' + raw.replace(/\/+$/, '').split('/').pop() : (raw.startsWith('@') ? raw : '@' + raw);
+  }
+  if (data.location) document.getElementById('footLocation').textContent = data.location;
 }
 
-/* ============ FORMULARIO ============ */
-document.getElementById('contactForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault(); let valid = true;
-  e.target.querySelectorAll('.field').forEach(f => {
-    const input = f.querySelector('input,select,textarea'); if (!input) return;
-    const ok = input.checkValidity() && input.value.trim() !== '';
-    f.classList.toggle('invalid', !ok); if (!ok) valid = false;
+/* ══════════ ACCESO OCULTO: 5 clicks en el logo ══════════ */
+const modal = document.getElementById('secretModal');
+const smMsg = document.getElementById('smMsg');
+let clicks = 0, clickTimer = null;
+
+document.getElementById('navLogo').addEventListener('click', e => {
+  e.preventDefault();
+  clicks++;
+  clearTimeout(clickTimer);
+  clickTimer = setTimeout(() => { clicks = 0; }, 2200);
+  if (clicks < 5) return;
+  clicks = 0;
+  supabase.auth.getSession().then(({ data }) => {
+    if (data.session) location.href = 'admin.html';
+    else { modal.classList.add('open'); smMsg.textContent = ''; smMsg.className = 'sm-msg'; setTimeout(() => document.getElementById('smEmail').focus(), 60); }
   });
-  if (!valid) return;
+});
+const closeModal = () => modal.classList.remove('open');
+document.getElementById('smClose').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
 
-  const btn  = e.target.querySelector('[type=submit]');
-  const fd   = new FormData(e.target);
-  const data = {
-    from_name:  fd.get('name')    || '',
-    from_email: fd.get('email')   || '',
-    message:    fd.get('message') || '',
-  };
-
-  btn.disabled = true;
-  btn.querySelector('span').textContent = T[currentLang || 'es'].form_sending;
-
-  try {
-    // Requiere configurar EmailJS — ver instrucciones abajo
-    await emailjs.send(
-      window.EMAILJS_SERVICE_ID   || 'TU_SERVICE_ID',
-      window.EMAILJS_TEMPLATE_ID  || 'TU_TEMPLATE_ID',
-      data
-    );
-    document.getElementById('formSuccess').classList.add('show');
-    e.target.reset();
-    setTimeout(() => document.getElementById('formSuccess').classList.remove('show'), 5000);
-  } catch(err) {
-    alert('Error al enviar: ' + (err.text || err.message || JSON.stringify(err)));
-  } finally {
-    btn.disabled = false;
-    btn.querySelector('span').textContent = T[currentLang || 'es'].form_send;
-  }
+document.getElementById('secretForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  smMsg.className = 'sm-msg'; smMsg.textContent = 'Verificando…';
+  const { error } = await supabase.auth.signInWithPassword({
+    email: document.getElementById('smEmail').value.trim(),
+    password: document.getElementById('smPass').value
+  });
+  if (error){ smMsg.className = 'sm-msg err'; smMsg.textContent = 'Credenciales incorrectas'; return; }
+  smMsg.className = 'sm-msg ok'; smMsg.textContent = 'Acceso concedido';
+  location.href = 'admin.html';
 });
 
-/* ============ GRID TRAIL (página completa, sutil) ============ */
-function initGridTrail(){
-  if (window.matchMedia('(max-width: 768px), (prefers-reduced-motion: reduce)').matches) return;
-  const canvas = document.createElement('canvas');
-  // fixed = sigue toda la página, no solo el hero
-  canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;mix-blend-mode:screen;';
-  document.body.appendChild(canvas);
-
-  const ctx  = canvas.getContext('2d');
-  const CELL = 80;
-  const FADE = 1000;
-
-  function resize(){
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize, { passive: true });
-
-  const trail = new Map();
-  document.addEventListener('mousemove', e => {
-    const col = Math.floor(e.clientX / CELL);
-    const row = Math.floor(e.clientY / CELL);
-    trail.set(`${col},${row}`, { col, row, t: Date.now() });
-  }, { passive: true });
-
-  function draw(){
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const now = Date.now();
-    trail.forEach((cell, key) => {
-      const age   = now - cell.t;
-      if (age > FADE) { trail.delete(key); return; }
-      const alpha = (1 - age / FADE);
-      const x = cell.col * CELL;
-      const y = cell.row * CELL;
-      // Relleno muy sutil
-      ctx.fillStyle = `rgba(0,255,65,${alpha * 0.018})`;
-      ctx.fillRect(x, y, CELL, CELL);
-      // Borde — efecto principal
-      ctx.strokeStyle = `rgba(0,255,65,${alpha * 0.45})`;
-      ctx.lineWidth   = 1;
-      ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-}
-
-/* ============ ACCESO OCULTO ============ */
-let clickCount = 0, clickTimer = null;
-const logo = document.querySelector('.nav-logo');
-if (logo) {
-  logo.addEventListener('click', (e) => {
-    e.preventDefault(); clickCount++;
-    if (clickTimer) clearTimeout(clickTimer);
-    clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
-    if (clickCount >= 5) {
-      clickCount = 0;
-      window.location.href = 'admin.html';
-    }
-  });
-}
-
-/* ============ INIT ============ */
-loadImages(); loadProfile(); loadSettings(); initGridTrail();
-// Aplicar idioma guardado (si existe)
-if (currentLang) setLang(currentLang);
+/* ══════════ INIT ══════════ */
+loadImages(); loadProfile(); loadSettings();

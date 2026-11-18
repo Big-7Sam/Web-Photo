@@ -1,140 +1,203 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Santiago Fotografía</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Cpath d='M16 4l10 6v12l-10 6-10-6V10z' fill='none' stroke='%2300FF41' stroke-width='2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;700&family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
-<body class="admin-body" style="overflow:hidden;">
-  <div class="grain"></div>
+<body class="admin-body">
+
+<div class="grain"></div>
 <div class="cursor-dot"></div>
 <div class="cursor-ring"></div>
 
-  <!-- LOGIN -->
-  <section class="auth-wrap" id="authWrap">
-    <div class="auth-card">
-      <a href="index.html" class="auth-logo">SP<span class="accent">.</span></a>
-      <h2>Acceso Admin</h2>
-      <p class="auth-sub">Inicia sesión para gestionar tu portfolio</p>
-      <form id="loginForm" class="auth-form">
-        <div class="field"><label>Email</label><input type="email" name="email" required autocomplete="email"></div>
-        <div class="field"><label>Contraseña</label><input type="password" name="password" required autocomplete="current-password"></div>
-        <button class="btn btn-primary btn-full" type="submit">Entrar</button>
-        <div class="auth-msg" id="authMsg"></div>
-      </form>
-      <a href="index.html" class="auth-back">← Volver al sitio</a>
+<!-- LOGIN -->
+<section class="auth-wrap" id="authWrap">
+  <div class="auth-card">
+    <a href="index.html" class="auth-logo">SP<span class="accent">.</span></a>
+    <h2>Acceso Admin</h2>
+    <p class="auth-sub">Inicia sesión para gestionar tu archivo</p>
+    <form id="loginForm" class="auth-form">
+      <div class="field"><label>Email</label><input type="email" name="email" required autocomplete="username"></div>
+      <div class="field"><label>Contraseña</label><input type="password" name="password" required autocomplete="current-password"></div>
+      <button class="btn btn-primary btn-full" type="submit"><span>Entrar</span></button>
+      <p class="auth-msg" id="authMsg"></p>
+    </form>
+    <a href="index.html" class="auth-back">← Volver al sitio</a>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section class="dashboard" id="dashboard" hidden>
+  <aside class="dash-sidebar">
+    <div class="dash-brand">
+      <a href="index.html" class="nav-logo">SP<span class="accent">.</span></a>
+      <p>Admin</p>
     </div>
-  </section>
+    <nav class="dash-nav">
+      <button class="dash-nav-btn active" data-tab="upload"><i>⬆</i>Subir fotos</button>
+      <button class="dash-nav-btn" data-tab="gallery"><i>▦</i>Galería</button>
+      <button class="dash-nav-btn" data-tab="profile"><i>◍</i>Perfil</button>
+      <button class="dash-nav-btn" data-tab="contact"><i>✉</i>Contacto</button>
+      <button class="dash-nav-btn" data-tab="stats"><i>◫</i>Estadísticas</button>
+    </nav>
+    <div class="dash-user">
+      <span class="user-email" id="userEmail"></span>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn">Salir</button>
+    </div>
+  </aside>
 
-  <!-- DASHBOARD -->
-  <section class="dashboard" id="dashboard" style="display:none;">
-    <aside class="dash-sidebar">
-      <div class="dash-brand">
-        <a href="index.html" class="nav-logo">SP<span class="accent">.</span></a>
-        <p>Admin Panel</p>
+  <main class="dash-main">
+    <header class="dash-top">
+      <div>
+        <p class="section-kicker">— Panel</p>
+        <h1 class="dash-title" id="dashTitle">Subir fotos</h1>
       </div>
-      <nav class="dash-nav">
-        <button class="dash-nav-btn active" data-tab="upload">⬆ Subir fotos</button>
-        <button class="dash-nav-btn" data-tab="gallery">🖼 Galería</button>
-        <button class="dash-nav-btn" data-tab="profile">👤 Perfil</button>
-        <button class="dash-nav-btn" data-tab="contact">✉ Contacto</button>
-        <button class="dash-nav-btn" data-tab="stats">📊 Estadísticas</button>
-      </nav>
-      <div class="dash-user">
-        <span class="user-email" id="userEmail"></span>
-        <button class="btn btn-ghost btn-sm" id="logoutBtn">Salir</button>
+      <a href="index.html" class="btn btn-ghost btn-sm">Ver sitio →</a>
+    </header>
+
+    <!-- UPLOAD -->
+    <section class="dash-panel active" data-panel="upload">
+      <div class="upload-card">
+        <div class="upload-head">
+          <div class="field field-inline">
+            <label>Categoría de destino</label>
+            <select id="uploadCategory">
+              <option>Blanco y Negro</option><option>Retratos</option><option>Gothic</option><option>Urbano</option>
+            </select>
+          </div>
+          <p class="upload-note">Se genera una miniatura optimizada por foto. El original queda intacto.</p>
+        </div>
+
+        <div class="drop-zone" id="dropZone" role="button" tabindex="0">
+          <div class="dz-icon">⬆</div>
+          <h3>Arrastra imágenes aquí</h3>
+          <p>o haz clic para seleccionar · JPG · PNG · WEBP · múltiple</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
+
+        <div class="upload-opts" id="uploadOpts" hidden>
+          <div class="upload-queue" id="uploadQueue"></div>
+          <div class="upload-summary" id="uploadSummary"></div>
+          <div class="upload-progress" id="uploadProgress"><i class="bar"></i></div>
+          <div class="upload-actions">
+            <button class="btn btn-ghost btn-sm" id="uploadClear">Vaciar cola</button>
+            <button class="btn btn-primary" id="uploadBtn"><span>Subir al servidor</span></button>
+          </div>
+        </div>
       </div>
-    </aside>
+    </section>
 
-    <main class="dash-main">
-      <header class="dash-top">
-        <div><p class="section-kicker">— Dashboard</p><h1 class="dash-title" id="dashTitle">Subir fotos</h1></div>
-        <a href="index.html" class="btn btn-ghost btn-sm">Ver sitio →</a>
-      </header>
+    <!-- GALLERY -->
+    <section class="dash-panel" data-panel="gallery">
+      <div class="gal-toolbar">
+        <div class="gt-filters">
+          <select id="filterCategory" aria-label="Categoría">
+            <option value="">Todas las categorías</option>
+            <option>Blanco y Negro</option><option>Retratos</option><option>Gothic</option><option>Urbano</option>
+          </select>
+          <select id="filterFormat" aria-label="Formato">
+            <option value="">Todos los formatos</option>
+            <option value="JPG">JPG</option><option value="PNG">PNG</option><option value="WEBP">WEBP</option>
+          </select>
+          <select id="sortBy" aria-label="Orden">
+            <option value="recent">Más recientes</option>
+            <option value="heavy">Más pesadas</option>
+            <option value="light">Más livianas</option>
+            <option value="cat">Por categoría</option>
+          </select>
+          <button class="chip-toggle" id="heavyToggle" aria-pressed="false">Sólo +3 MB</button>
+        </div>
+        <div class="gt-actions">
+          <button class="btn btn-ghost btn-sm" id="optimizeBtn" hidden>Optimizar (<span id="optCount">0</span>)</button>
+          <button class="btn btn-ghost btn-sm" id="selectAllBtn">Seleccionar todo</button>
+        </div>
+      </div>
 
-      <!-- UPLOAD -->
-      <section class="dash-panel active" data-panel="upload">
-        <div class="upload-card">
-          <label class="drop-zone" id="dropZone">
-            <div class="dz-icon">⬆</div>
-            <h3>Arrastra imágenes aquí</h3>
-            <p>o haz clic para seleccionar (JPG, PNG, WEBP)</p>
-            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
-          </label>
-          <div class="upload-opts" id="uploadOpts" style="display:none;">
-            <div class="field">
-              <label>Categoría</label>
-              <select id="uploadCategory">
-                <option>Retratos</option>
-                <option>Editorial</option>
-                <option>Dark</option>
-              </select>
-            </div>
-            <div class="upload-queue" id="uploadQueue"></div>
-            <button class="btn btn-primary btn-full" id="uploadBtn">Subir al servidor</button>
-            <div class="upload-progress" id="uploadProgress"></div>
+      <div class="gal-summary" id="galSummary"></div>
+
+      <div class="bulk-bar" id="bulkBar" hidden>
+        <span class="bulk-count"><b id="bulkCount">0</b> seleccionadas</span>
+        <select id="bulkCategory" aria-label="Nueva categoría">
+          <option>Blanco y Negro</option><option>Retratos</option><option>Gothic</option><option>Urbano</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="bulkApply">Mover</button>
+        <button class="btn btn-ghost btn-sm" id="bulkDuplicate">Duplicar en</button>
+        <button class="btn btn-danger btn-sm" id="bulkDelete">Eliminar</button>
+        <button class="bulk-clear" id="bulkClear" aria-label="Limpiar selección">✕</button>
+      </div>
+
+      <div class="admin-gallery" id="adminGallery"></div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="dash-panel" data-panel="profile">
+      <div class="panel-card">
+        <h3>Identidad</h3>
+        <div class="profile-editor">
+          <div class="pe-thumb"><img id="adminProfileImg" alt="Perfil"></div>
+          <div>
+            <button class="btn btn-ghost btn-sm" id="profilePick">Cambiar foto</button>
+            <input type="file" id="profileImgInput" accept="image/jpeg,image/png,image/webp" hidden>
+            <p class="pe-note">Vertical 3:4 · se optimiza al subir</p>
           </div>
         </div>
-      </section>
+        <div class="field"><label>Biografía</label><textarea id="adminBio" rows="8"></textarea></div>
+        <button class="btn btn-primary" id="saveProfile"><span>Guardar perfil</span></button>
+      </div>
+    </section>
 
-      <!-- GALLERY -->
-      <section class="dash-panel" data-panel="gallery">
-        <div class="panel-tools">
-          <select id="filterCategory"><option value="">Todas</option><option>Retratos</option><option>Editorial</option><option>Dark</option></select>
-          <button id="deleteSelectedBtn" class="btn btn-ghost btn-sm" style="border-color:var(--danger);color:var(--danger);">Eliminar (<span id="selectedCount">0</span>)</button>
-        </div>
-        <div class="admin-gallery" id="adminGallery"></div>
-      </section>
+    <!-- CONTACT -->
+    <section class="dash-panel" data-panel="contact">
+      <div class="panel-card">
+        <h3>Canales públicos</h3>
+        <p class="pe-note mb">Estos tres datos alimentan los botones de la sección Contacto.</p>
+        <div class="field"><label>Email</label><input type="email" id="setEmail" placeholder="hola@santiagofoto.com"></div>
+        <div class="field"><label>WhatsApp</label><input type="text" id="setWhatsapp" placeholder="+54 11 0000-0000"></div>
+        <div class="field"><label>Instagram</label><input type="text" id="setInstagram" placeholder="@santiagofoto"></div>
+        <div class="field"><label>Ubicación (pie de página)</label><input type="text" id="setLocation" placeholder="Buenos Aires, Argentina"></div>
+        <button class="btn btn-primary" id="saveSettings"><span>Guardar contacto</span></button>
+      </div>
+    </section>
 
-      <!-- PROFILE -->
-      <section class="dash-panel" data-panel="profile">
-        <div class="panel-card">
-          <h3>Foto de perfil</h3>
-          <div class="profile-editor">
-            <img id="adminProfileImg" src="" alt="Perfil">
-            <label class="btn btn-ghost btn-sm">Cambiar foto<input type="file" id="profileImgInput" accept="image/*" hidden></label>
-          </div>
-          <div class="field"><label>Biografía ES</label><textarea id="adminBio" rows="7"></textarea></div>
-          <div class="field"><label>Biografía EN</label><textarea id="adminBioEn" rows="7" placeholder="Opcional: versión en inglés"></textarea></div>
-          <div class="field" style="margin-top:20px;border-top:1px solid #222;padding-top:20px;">
-            <label>Logo / Texto del sitio (reemplaza "SP")</label>
-            <input type="text" id="setLogoText" placeholder="SP" maxlength="20">
-          </div>
-          <button class="btn btn-primary" id="saveProfile">Guardar perfil</button>
-        </div>
-      </section>
+    <!-- STATS -->
+    <section class="dash-panel" data-panel="stats">
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-num" id="sTotal">0</span><span class="stat-lbl">Fotos en archivo</span></div>
+        <div class="stat-card c-cyan"><span class="stat-num" id="sWeight">0</span><span class="stat-lbl">Peso total</span></div>
+        <div class="stat-card c-amber"><span class="stat-num" id="sHeavy">0</span><span class="stat-lbl">Foto más pesada</span></div>
+        <div class="stat-card c-magenta"><span class="stat-num" id="sThumbs">0</span><span class="stat-lbl">Miniaturas listas</span></div>
+      </div>
+      <div class="panel-card mt">
+        <h3>Archivo por categoría</h3>
+        <div class="chart" id="chartCats"></div>
+        <h3 class="mt">Formatos</h3>
+        <div class="fmt-breakdown" id="formatBreakdown"></div>
+      </div>
+    </section>
+  </main>
+</section>
 
-      <!-- CONTACT -->
-      <section class="dash-panel" data-panel="contact">
-        <div class="panel-card">
-          <div class="field"><label>Título de la sección</label><input type="text" id="setContactTitle" placeholder="Ej: Hablemos de tu proyecto"></div>
-          <div class="field"><label>Subtítulo</label><input type="text" id="setContactSubtitle" placeholder="Ej: Disponible para..."></div>
-          <div class="field"><label>Email</label><input type="email" id="setEmail"></div>
-          <div class="field"><label>WhatsApp</label><input type="text" id="setWhatsapp"></div>
-          <div class="field"><label>Ubicación</label><input type="text" id="setLocation"></div>
-          <div class="field"><label>Instagram</label><input type="text" id="setInstagram"></div>
-          <button class="btn btn-primary" id="saveSettings">Guardar</button>
-        </div>
-      </section>
+<div class="toast-wrap" id="toasts"></div>
 
-      <!-- STATS -->
-      <section class="dash-panel" data-panel="stats">
-        <div class="stats-grid">
-          <div class="stat-card"><span class="stat-num" id="sTotal">0</span><span class="stat-lbl">Total imágenes</span></div>
-          <div class="stat-card"><span class="stat-num" id="sRet">0</span><span class="stat-lbl">Retratos</span></div>
-          <div class="stat-card"><span class="stat-num" id="sEd">0</span><span class="stat-lbl">Editorial</span></div>
-          <div class="stat-card"><span class="stat-num" id="sDark">0</span><span class="stat-lbl">Dark</span></div>
-        </div>
-      </section>
-    </main>
-  </section>
+<div class="confirm" id="confirmBox" aria-hidden="true">
+  <div class="confirm-card">
+    <h3 id="confirmTitle">Confirmar</h3>
+    <p id="confirmText"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost btn-sm" id="confirmCancel">Cancelar</button>
+      <button class="btn btn-danger btn-sm" id="confirmOk">Eliminar</button>
+    </div>
+  </div>
+</div>
 
-  <script type="module" src="supabase.js"></script>
-  <script type="module" src="admin.js"></script>
-  
+<script type="module" src="admin.js"></script>
 </body>
 </html>
