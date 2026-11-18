@@ -18,7 +18,6 @@
 <div class="cursor-dot"></div>
 <div class="cursor-ring"></div>
 
-<!-- LOGIN -->
 <section class="auth-wrap" id="authWrap">
   <div class="auth-card">
     <a href="index.html" class="auth-logo">SP<span class="accent">.</span></a>
@@ -34,7 +33,6 @@
   </div>
 </section>
 
-<!-- DASHBOARD -->
 <section class="dashboard" id="dashboard" hidden>
   <aside class="dash-sidebar">
     <div class="dash-brand">
@@ -75,14 +73,12 @@
           </div>
           <p class="upload-note">Se genera una miniatura optimizada por foto. El original queda intacto.</p>
         </div>
-
         <div class="drop-zone" id="dropZone" role="button" tabindex="0">
           <div class="dz-icon">⬆</div>
           <h3>Arrastra imágenes aquí</h3>
           <p>o haz clic para seleccionar · JPG · PNG · WEBP · múltiple</p>
         </div>
         <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
-
         <div class="upload-opts" id="uploadOpts" hidden>
           <div class="upload-queue" id="uploadQueue"></div>
           <div class="upload-summary" id="uploadSummary"></div>
@@ -97,6 +93,16 @@
 
     <!-- GALLERY -->
     <section class="dash-panel" data-panel="gallery">
+      <div class="cover-card" id="coverCard">
+        <div class="cc-thumb"><img id="coverImg" alt=""><span class="cc-ph" id="coverPh">⬡</span></div>
+        <div class="cc-info">
+          <p class="section-kicker">— Portada del inicio</p>
+          <h3 id="coverTitle">Sin portada</h3>
+          <p class="cc-meta" id="coverMeta">Tocá ★ en cualquier foto para que ocupe el hero de la web.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="coverClear" hidden>Quitar portada</button>
+      </div>
+
       <div class="gal-toolbar">
         <div class="gt-filters">
           <select id="filterCategory" aria-label="Categoría">
@@ -130,6 +136,7 @@
         </select>
         <button class="btn btn-ghost btn-sm" id="bulkApply">Mover</button>
         <button class="btn btn-ghost btn-sm" id="bulkDuplicate">Duplicar en</button>
+        <button class="btn btn-ghost btn-sm" id="bulkFeature">★ Portada</button>
         <button class="btn btn-danger btn-sm" id="bulkDelete">Eliminar</button>
         <button class="bulk-clear" id="bulkClear" aria-label="Limpiar selección">✕</button>
       </div>

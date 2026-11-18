@@ -50,11 +50,17 @@
 
 <!-- HERO -->
 <section class="hero" id="hero">
-  <div class="hero-grid"></div>
-  <div class="hero-glow g1"></div>
-  <div class="hero-glow g2"></div>
+  <div class="hero-media" id="heroMedia" hidden><div class="hm-inner">
+    <img class="hm-base" id="heroBase" alt="" decoding="async" fetchpriority="high">
+    <img class="hm-full" id="heroFull" alt="" decoding="async">
+  </div></div>
+  <div class="hero-scrim"></div>
+  <div class="hero-grid" id="heroGrid"></div>
+  <div class="hero-glows" id="heroGlows"><i class="hero-glow g1"></i><i class="hero-glow g2"></i></div>
+  <div class="hero-vignette"></div>
+
   <div class="container hero-inner">
-    <div class="hero-content">
+    <div class="hero-content" id="heroContent">
       <p class="hero-kicker">Santiago Fotografía — Est. 2015</p>
       <h1 class="hero-title"><span>CAPTURA</span><span>EL</span><span>INSTANTE</span></h1>
       <p class="hero-subtitle">Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.</p>
@@ -63,10 +69,15 @@
         <span class="hero-count"><b id="heroCount">—</b> obras en archivo</span>
       </div>
     </div>
-    <div class="hero-side">
-      <span>BUENOS AIRES</span><i></i><span>34°36′S 58°22′W</span>
-    </div>
+    <div class="hero-side"><span>BUENOS AIRES</span><i></i><span>34°36′S 58°22′W</span></div>
   </div>
+
+  <button class="hero-feature" id="heroFeature" hidden>
+    <span class="hf-star">★</span>
+    <span class="hf-txt"><b id="heroFeatLabel">Portada</b><i id="heroFeatCat">—</i></span>
+    <span class="hf-go">Ver foto ⤢</span>
+  </button>
+
   <div class="scroll-indicator"><span>SCROLL</span><div class="scroll-line"></div></div>
 </section>
 
@@ -80,7 +91,36 @@
       </div>
       <p class="head-note"><b id="portfolioCount">0</b> imágenes · click para ampliar</p>
     </header>
+
     <div class="categories" id="categories"></div>
+
+    <div class="lighttable" id="lighttable">
+      <div class="lt-scroll">
+        <label class="lt-ctl"><span>Tamaño</span><input type="range" id="vSize" min="150" max="620" step="10" aria-label="Tamaño de foto"><b id="vSizeOut">380</b></label>
+        <label class="lt-ctl"><span>Espacio</span><input type="range" id="vGap" min="0" max="26" step="1" aria-label="Espaciado"><b id="vGapOut">5</b></label>
+        <label class="lt-ctl"><span>Revelado</span><input type="range" id="vCon" min="80" max="145" step="1" aria-label="Contraste"><b id="vConOut">100</b></label>
+        <select id="vRatio" aria-label="Formato">
+          <option value="1/1">Cuadrada 1:1</option>
+          <option value="4/5">Vertical 4:5</option>
+          <option value="3/4">Retrato 3:4</option>
+          <option value="16/9">Pano 16:9</option>
+        </select>
+        <select id="vOrder" aria-label="Orden">
+          <option value="recent">Más recientes</option>
+          <option value="old">Más antiguas</option>
+          <option value="cat">Por categoría</option>
+          <option value="cover">Portada primero</option>
+          <option value="shuffle">Aleatorio</option>
+        </select>
+        <button class="lt-toggle" id="vBW" aria-pressed="false">B/N</button>
+        <button class="lt-toggle" id="vZoom" aria-pressed="true">Zoom</button>
+        <button class="lt-toggle" id="vTags" aria-pressed="false">Etiquetas</button>
+        <button class="lt-btn" id="vShuffle">↯ Aleatorio</button>
+        <button class="lt-btn" id="vReset">Reset</button>
+      </div>
+      <span class="lt-read" id="ltRead">—</span>
+    </div>
+
     <div class="gallery" id="gallery"></div>
   </div>
 </section>
@@ -91,7 +131,7 @@
     <div class="about-photo reveal">
       <img id="profileImg" alt="Santiago" decoding="async">
       <div class="about-photo-frame"></div>
-      <span class="about-tag"> Retrato / 35mm</span>
+      <span class="about-tag">Retrato / 35mm</span>
     </div>
     <div class="about-content reveal">
       <p class="section-kicker">— Sobre mí</p>
@@ -116,7 +156,6 @@
       <h2 class="section-title">HABLEMOS<span class="accent">.</span></h2>
       <p class="contact-lead">Retratos, editoriales, eventos y colaboraciones creativas. Elegí tu canal.</p>
     </header>
-
     <div class="social-grid">
       <a class="social-card reveal" id="cEmail" href="mailto:hola@santiagofoto.com" style="--net:#00E5FF;--d:0ms">
         <span class="sc-index">01</span>
@@ -125,7 +164,6 @@
         <span class="sc-value" id="cEmailVal">hola@santiagofoto.com</span>
         <span class="sc-go">Escribir<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
       </a>
-
       <a class="social-card reveal" id="cWhatsapp" href="https://wa.me/541100000000" target="_blank" rel="noopener" style="--net:#00FF41;--d:90ms">
         <span class="sc-index">02</span>
         <span class="sc-icon"><svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.08-.3-.15-1.26-.47-2.4-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.44-.53.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.66-1.61-.91-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.03 1.02-1.03 2.48s1.06 2.87 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.18-1.42-.08-.12-.28-.2-.57-.34M12.05 21.8h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.89 9.89-9.89 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.89 6.99c0 5.45-4.43 9.89-9.88 9.89m8.41-18.3A11.82 11.82 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.69 1.45c6.55 0 11.89-5.34 11.89-11.89 0-3.18-1.24-6.17-3.48-8.41"/></svg></span>
@@ -133,7 +171,6 @@
         <span class="sc-value" id="cWhatsappVal">+54 11 0000-0000</span>
         <span class="sc-go">Chatear<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
       </a>
-
       <a class="social-card reveal" id="cInstagram" href="https://instagram.com/santiagofoto" target="_blank" rel="noopener" style="--net:#FF2D95;--d:180ms">
         <span class="sc-index">03</span>
         <span class="sc-icon"><svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 0 1 12 7.5Zm0 2A2.5 2.5 0 1 0 14.5 12 2.5 2.5 0 0 0 12 9.5Zm5.6-4.1a1.1 1.1 0 1 1-1.1 1.1 1.1 1.1 0 0 1 1.1-1.1Z"/></svg></span>
