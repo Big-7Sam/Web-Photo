@@ -61,13 +61,16 @@
 
     <div class="schema-alert" id="schemaAlert" hidden>
       <div class="sa-body">
-        <h3>Falta una columna en la base de datos</h3>
-        <p>Sin esto no se puede guardar la portada ni los pesos. Abrí Supabase → SQL Editor, pegá y ejecutá:</p>
+        <h3>Faltan columnas en la base de datos</h3>
+        <p>Sin esto no se guarda la portada, el encuadre ni los pesos. Supabase → SQL Editor → pegar y ejecutar:</p>
         <pre id="schemaSql">alter table portfolio_images
   add column if not exists file_size bigint,
   add column if not exists file_format text,
   add column if not exists thumb_url text,
-  add column if not exists is_featured boolean not null default false;</pre>
+  add column if not exists is_featured boolean not null default false,
+  add column if not exists focus_x real not null default 50,
+  add column if not exists focus_y real not null default 50,
+  add column if not exists cover_zoom real not null default 1;</pre>
       </div>
       <div class="sa-actions">
         <button class="btn btn-ghost btn-sm" id="copySql">Copiar SQL</button>
@@ -75,7 +78,6 @@
       </div>
     </div>
 
-    <!-- UPLOAD -->
     <section class="dash-panel active" data-panel="upload">
       <div class="upload-card">
         <div class="upload-head">
@@ -105,7 +107,6 @@
       </div>
     </section>
 
-    <!-- GALLERY -->
     <section class="dash-panel" data-panel="gallery">
       <div class="cover-card" id="coverCard">
         <div class="cc-thumb" id="ccThumb"><img id="coverImg" alt=""><span class="cc-ph">⬡</span></div>
@@ -114,7 +115,10 @@
           <h3 id="coverTitle">Cargando…</h3>
           <p class="cc-meta" id="coverMeta"></p>
         </div>
-        <button class="btn btn-ghost btn-sm cc-btn" id="coverClear" hidden>Quitar portada</button>
+        <div class="cc-actions">
+          <button class="btn btn-ghost btn-sm" id="coverFrame" hidden>Encuadrar</button>
+          <button class="btn btn-ghost btn-sm" id="coverClear" hidden>Quitar</button>
+        </div>
       </div>
 
       <div class="gal-toolbar">
@@ -158,7 +162,6 @@
       <div class="admin-gallery" id="adminGallery"></div>
     </section>
 
-    <!-- PROFILE -->
     <section class="dash-panel" data-panel="profile">
       <div class="panel-card">
         <h3>Identidad</h3>
@@ -175,7 +178,6 @@
       </div>
     </section>
 
-    <!-- CONTACT -->
     <section class="dash-panel" data-panel="contact">
       <div class="panel-card">
         <h3>Canales públicos</h3>
@@ -188,7 +190,6 @@
       </div>
     </section>
 
-    <!-- STATS -->
     <section class="dash-panel" data-panel="stats">
       <div class="stats-grid">
         <div class="stat-card"><span class="stat-num" id="sTotal">0</span><span class="stat-lbl">Fotos en archivo</span></div>
@@ -205,6 +206,53 @@
     </section>
   </main>
 </section>
+
+<!-- ENCUADRE DE PORTADA -->
+<div class="frame-modal" id="frameModal" aria-hidden="true">
+  <div class="fm-card">
+    <header class="fm-head">
+      <p class="section-kicker">— Portada del inicio</p>
+      <h3>Encuadre</h3>
+      <button class="fm-close" id="fmClose" aria-label="Cerrar">✕</button>
+    </header>
+
+    <div class="fm-devices">
+      <button class="chip-toggle" id="fmDesktop" aria-pressed="true">Desktop</button>
+      <button class="chip-toggle" id="fmMobile" aria-pressed="false">Celular</button>
+      <span class="fm-note">Arrastrá la foto para elegir qué se ve · rueda o slider para acercar</span>
+    </div>
+
+    <div class="fm-stage-wrap">
+      <div class="fm-stage" id="fmStage">
+        <img id="fmImg" alt="">
+        <div class="fm-scrim"></div>
+        <div class="fm-thirds" id="fmThirds" hidden></div>
+        <div class="fm-ghost" id="fmGhost"><span>CAPTURA</span><span>EL</span><span>INSTANTE</span></div>
+        <div class="fm-reticle" id="fmReticle"></div>
+      </div>
+    </div>
+
+    <div class="fm-tools">
+      <label class="fm-ctl"><span>Zoom</span><input type="range" id="fmZoom" min="100" max="260" step="1" value="100"><b id="fmZoomOut">100%</b></label>
+      <div class="fm-presets">
+        <button data-fx="50" data-fy="50">Centro</button>
+        <button data-fx="50" data-fy="0">Arriba</button>
+        <button data-fx="50" data-fy="100">Abajo</button>
+        <button data-fx="0" data-fy="50">Izq</button>
+        <button data-fx="100" data-fy="50">Der</button>
+      </div>
+      <button class="chip-toggle" id="fmTextBtn" aria-pressed="true">Texto</button>
+      <button class="chip-toggle" id="fmGridBtn" aria-pressed="false">Guías</button>
+      <span class="fm-read" id="fmRead">X 50 · Y 50</span>
+    </div>
+
+    <footer class="fm-actions">
+      <button class="btn btn-ghost btn-sm" id="fmReset">Restablecer</button>
+      <button class="btn btn-ghost btn-sm" id="fmCancel">Cancelar</button>
+      <button class="btn btn-primary" id="fmSave"><span>Guardar portada</span></button>
+    </footer>
+  </div>
+</div>
 
 <div class="toast-wrap" id="toasts"></div>
 
