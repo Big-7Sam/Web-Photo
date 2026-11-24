@@ -4,7 +4,7 @@ const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finePointer = matchMedia('(hover:hover) and (pointer:fine)').matches;
 
-/* ══════════ I18N ══════════ */
+/* ══════════ I18N + TEXTOS EDITABLES ══════════ */
 const I18N = {
   es:{
     'doc.title':'Santiago Fotografía — Captura el Instante',
@@ -18,7 +18,6 @@ const I18N = {
     'gal.empty':'— Sin imágenes en esta categoría —','gal.error':'— No se pudo cargar el archivo —',
     'about.kicker':'— Sobre mí','about.title':'La historia detrás del lente','about.tag':'Retrato / 35mm',
     'about.bio':'Soy Santiago, fotógrafo profesional con más de una década documentando la vida a través del lente. Especializado en retratos, fotografía urbana y proyectos editoriales con una estética oscura y cinematográfica.',
-    'about.years':'Años','about.projects':'Proyectos','about.awards':'Premios',
     'contact.kicker':'— Contacto','contact.title':'HABLEMOS',
     'contact.lead':'Retratos, editoriales, eventos y colaboraciones creativas. Elegí tu canal.',
     'contact.email':'Email','contact.write':'Escribir','contact.chat':'Chatear','contact.follow':'Seguir',
@@ -38,7 +37,6 @@ const I18N = {
     'gal.empty':'— No images in this category —','gal.error':'— The archive could not be loaded —',
     'about.kicker':'— About','about.title':'The story behind the lens','about.tag':'Portrait / 35mm',
     'about.bio':'I am Santiago, a professional photographer with over a decade documenting life through the lens. Specialised in portraits, urban photography and editorial work with a dark, cinematic aesthetic.',
-    'about.years':'Years','about.projects':'Projects','about.awards':'Awards',
     'contact.kicker':'— Contact','contact.title':"LET'S TALK",
     'contact.lead':'Portraits, editorials, events and creative collaborations. Pick your channel.',
     'contact.email':'Email','contact.write':'Write','contact.chat':'Chat','contact.follow':'Follow',
@@ -58,7 +56,6 @@ const I18N = {
     'gal.empty':'— Sem imagens nesta categoria —','gal.error':'— Não foi possível carregar o arquivo —',
     'about.kicker':'— Sobre mim','about.title':'A história por trás da lente','about.tag':'Retrato / 35mm',
     'about.bio':'Sou Santiago, fotógrafo profissional com mais de uma década documentando a vida através da lente. Especializado em retratos, fotografia urbana e projetos editoriais com uma estética escura e cinematográfica.',
-    'about.years':'Anos','about.projects':'Projetos','about.awards':'Prêmios',
     'contact.kicker':'— Contato','contact.title':'VAMOS FALAR',
     'contact.lead':'Retratos, editoriais, eventos e colaborações criativas. Escolha seu canal.',
     'contact.email':'Email','contact.write':'Escrever','contact.chat':'Conversar','contact.follow':'Seguir',
@@ -67,15 +64,28 @@ const I18N = {
     'gate.pass':'Senha','gate.enter':'Entrar','gate.check':'Verificando…','gate.bad':'Credenciais incorretas','gate.ok':'Acesso liberado'
   }
 };
+const TEXT_COL = {
+  'hero.kicker':'hero_kicker','hero.t1':'hero_t1','hero.t2':'hero_t2','hero.t3':'hero_t3',
+  'hero.sub':'hero_sub','hero.cta':'hero_cta',
+  'about.title':'about_title','about.bio':'about_bio',
+  'contact.title':'contact_title','contact.lead':'contact_lead'
+};
 const CAT_KEY = { 'Blanco y Negro':'cat.bn', 'Retratos':'cat.ret', 'Gothic':'cat.got', 'Urbano':'cat.urb' };
 const LANG_KEY = 'sp_lang';
-let lang = 'es';
+let TEXTS = {}, lang = 'es';
 try { const s = localStorage.getItem(LANG_KEY); if (s && I18N[s]) lang = s; } catch(e){}
-const t = (k, vars) => {
-  let s = (I18N[lang] && I18N[lang][k]) || I18N.es[k] || k;
-  if (vars) for (const [a,b] of Object.entries(vars)) s = s.replace(new RegExp('\\{'+a+'\\}','g'), b);
+
+function t(k, vars){
+  const col = TEXT_COL[k];
+  let s = null;
+  if (col){
+    const own = TEXTS[lang] && TEXTS[lang][col];
+    if (own && String(own).trim()) s = own;
+  }
+  if (!s) s = (I18N[lang] && I18N[lang][k]) || (col && TEXTS.es && TEXTS.es[col]) || I18N.es[k] || k;
+  if (vars) for (const [a,b] of Object.entries(vars)) s = String(s).replace(new RegExp('\\{'+a+'\\}','g'), b);
   return s;
-};
+}
 const catLabel = c => CAT_KEY[c] ? t(CAT_KEY[c]) : (c || '');
 
 function applyLang(){
@@ -83,35 +93,39 @@ function applyLang(){
   document.title = t('doc.title');
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('.lang-switch button').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
-  if (allImages.length || galleryEl.children.length){ renderCategories(); renderGallery(); }
+  if (galleryEl.children.length){ renderCategories(); renderGallery(); }
   if (lb.classList.contains('open')) paintLbMeta();
   readColumns();
-  if (bioFromDb) $('bioText').textContent = bioFromDb;
 }
-function setLang(l, persist = true){
+function setLang(l){
   if (!I18N[l]) return;
   lang = l;
-  if (persist){ try { localStorage.setItem(LANG_KEY, l); } catch(e){} }
+  try { localStorage.setItem(LANG_KEY, l); } catch(e){}
   applyLang();
 }
 document.querySelectorAll('.lang-switch button').forEach(b => b.addEventListener('click', () => {
   setLang(b.dataset.lang);
   burger.classList.remove('open'); mob.classList.remove('open');
 }));
+async function loadTexts(){
+  const { data, error } = await supabase.from('site_texts').select('*');
+  if (error){ console.warn('Textos:', error.message); return; }
+  (data || []).forEach(r => { TEXTS[r.lang] = r; });
+  applyLang();
+}
 
-/* ══════════ SCROLL LOCK (sin salto de layout) ══════════ */
+/* ══════════ SCROLL LOCK ══════════ */
 let locks = 0;
 function lockScroll(){
   if (locks++) return;
   const sw = innerWidth - document.documentElement.clientWidth;
   document.body.style.overflow = 'hidden';
-  if (sw > 0){ document.body.style.paddingRight = sw + 'px'; const n = $('nav'); if (n) n.style.paddingRight = sw + 'px'; }
+  if (sw > 0){ document.body.style.paddingRight = sw+'px'; const n = $('nav'); if (n) n.style.paddingRight = sw+'px'; }
 }
 function unlockScroll(){
   if (--locks > 0) return;
-  locks = 0;
-  document.body.style.overflow = ''; document.body.style.paddingRight = '';
-  const n = $('nav'); if (n) n.style.paddingRight = '';
+  locks = 0; document.body.style.overflow=''; document.body.style.paddingRight='';
+  const n = $('nav'); if (n) n.style.paddingRight='';
 }
 
 /* ══════════ PROTECCIÓN ══════════ */
@@ -159,14 +173,13 @@ const gate = $('langGate');
 let hasLang = false;
 try { hasLang = !!localStorage.getItem(LANG_KEY); } catch(e){ hasLang = true; }
 function openGate(){
-  const nav = (navigator.language || 'es').slice(0,2).toLowerCase();
-  const guess = I18N[nav] ? nav : 'es';
+  const nv = (navigator.language || 'es').slice(0,2).toLowerCase();
+  const guess = I18N[nv] ? nv : 'es';
   gate.querySelectorAll('.lg-opt').forEach(b => b.classList.toggle('suggest', b.dataset.lang === guess));
   gate.hidden = false; lockScroll();
 }
 function closeGate(){ gate.classList.add('hide'); unlockScroll(); setTimeout(() => { gate.hidden = true; }, 520); }
 gate.querySelectorAll('.lg-opt').forEach(b => b.addEventListener('click', () => { setLang(b.dataset.lang); closeGate(); }));
-
 const hideLoader = () => $('loader')?.classList.add('hide');
 addEventListener('load', () => setTimeout(() => { hideLoader(); if (!hasLang) openGate(); }, 850));
 setTimeout(() => { hideLoader(); if (!hasLang && gate.hidden) openGate(); }, 2500);
@@ -212,6 +225,10 @@ function setCover(row){
     heroBase.removeAttribute('src'); heroFull.removeAttribute('src'); heroFull.classList.remove('on');
     return;
   }
+  const bright = Number.isFinite(row.cover_bright) ? row.cover_bright : 1;
+  const scrim  = Number.isFinite(row.cover_scrim) ? row.cover_scrim : 0.55;
+  hero.style.setProperty('--b', bright);
+  hero.style.setProperty('--s', scrim);
   hero.classList.add('has-photo'); heroMedia.hidden = false;
   heroFull.classList.remove('on');
   heroBase.src = row.thumb_url || row.image_url;
@@ -240,21 +257,17 @@ function setCover(row){
 })();
 
 /* ══════════ GALERÍA ══════════ */
-const SIZE_KEY = 'sp_size_v4';
-const DEFAULT_SIZE = 250;
+const SIZE_KEY = 'sp_size_v4', DEFAULT_SIZE = 250;
 let size = DEFAULT_SIZE;
 try { const s = +localStorage.getItem(SIZE_KEY); if (s >= 150 && s <= 620) size = s; } catch(e){}
-
 const CATS = ['Todo','Blanco y Negro','Retratos','Gothic','Urbano'];
-let allImages = [], activeCat = 'Todo', viewList = [], shuffled = null, bioFromDb = '';
+let allImages = [], activeCat = 'Todo', viewList = [], shuffled = null;
 const catsEl = $('categories'), galleryEl = $('gallery');
 const tiles = new Map();
 
 function applySize(){
   galleryEl.style.gridTemplateColumns = `repeat(auto-fill,minmax(min(${size}px,100%),1fr))`;
-  galleryEl.style.setProperty('--cis', size + 'px');
-  $('vSizeOut').textContent = size;
-  $('vSize').value = size;
+  $('vSizeOut').textContent = size; $('vSize').value = size;
   readColumns();
 }
 let readRaf = 0;
@@ -271,18 +284,15 @@ new ResizeObserver(readColumns).observe(galleryEl);
 function tileFor(row){
   let d = tiles.get(row.id);
   if (!d){
-    d = document.createElement('div');
-    d.className = 'gallery-item reveal';
-    const im = document.createElement('img');
-    im.loading = 'lazy'; im.decoding = 'async'; im.draggable = false;
-    const ov = document.createElement('div'); ov.className = 'gallery-overlay';
-    const lb = document.createElement('span'); const ic = document.createElement('i'); ic.textContent = '⤢';
+    d = document.createElement('div'); d.className = 'gallery-item reveal';
+    const im = document.createElement('img'); im.loading='lazy'; im.decoding='async'; im.draggable=false;
+    const ov = document.createElement('div'); ov.className='gallery-overlay';
+    const lb = document.createElement('span'); const ic = document.createElement('i'); ic.textContent='⤢';
     ov.append(lb, ic);
-    const st = document.createElement('span'); st.className = 'gi-star'; st.textContent = '★';
+    const st = document.createElement('span'); st.className='gi-star'; st.textContent='★';
     d.append(im, ov, st);
-    d.addEventListener('click', () => { const i = viewList.indexOf(d._row); if (i >= 0) openFrom(viewList, i); });
-    tiles.set(row.id, d);
-    revealIO.observe(d);
+    d.addEventListener('click', () => { const i = viewList.indexOf(d._row); if (i>=0) openFrom(viewList, i); });
+    tiles.set(row.id, d); revealIO.observe(d);
   }
   d._row = row;
   const im = d.querySelector('img'), lb = d.querySelector('.gallery-overlay span'), st = d.querySelector('.gi-star');
@@ -299,8 +309,7 @@ function renderCategories(){
     const n = cat === 'Todo' ? allImages.length : allImages.filter(i => i.category === cat).length;
     const b = document.createElement('button');
     b.className = 'cat-btn' + (cat === activeCat ? ' active' : '');
-    const label = cat === 'Todo' ? t('cat.all') : catLabel(cat);
-    b.innerHTML = `${label}<span class="cat-count">${n}</span>`;
+    b.innerHTML = `${cat === 'Todo' ? t('cat.all') : catLabel(cat)}<span class="cat-count">${n}</span>`;
     b.addEventListener('click', () => { activeCat = cat; renderCategories(); renderGallery(); });
     frag.appendChild(b);
   });
@@ -314,16 +323,9 @@ function renderGallery(){
   }
   viewList = base;
   $('portfolioCount').textContent = viewList.length;
-  if (!viewList.length){
-    galleryEl.innerHTML = `<div class="gallery-empty">${t('gal.empty')}</div>`;
-    readColumns(); return;
-  }
+  if (!viewList.length){ galleryEl.innerHTML = `<div class="gallery-empty">${t('gal.empty')}</div>`; readColumns(); return; }
   const frag = document.createDocumentFragment();
-  viewList.forEach((row,i) => {
-    const d = tileFor(row);
-    d.style.setProperty('--d', `${Math.min(i,10)*35}ms`);
-    frag.appendChild(d);
-  });
+  viewList.forEach((row,i) => { const d = tileFor(row); d.style.setProperty('--d', `${Math.min(i,10)*35}ms`); frag.appendChild(d); });
   galleryEl.replaceChildren(frag);
   readColumns();
 }
@@ -337,14 +339,10 @@ async function loadImages(){
   setCover(allImages.find(r => r.is_featured) || allImages[0] || null);
   renderCategories(); renderGallery();
 }
-
-$('vSize').addEventListener('input', e => {
-  size = +e.target.value; applySize();
-  try { localStorage.setItem(SIZE_KEY, size); } catch(err){}
-});
+$('vSize').addEventListener('input', e => { size = +e.target.value; applySize(); try { localStorage.setItem(SIZE_KEY, size); } catch(err){} });
 $('vShuffle').addEventListener('click', () => {
   shuffled = allImages.map(r => r.id);
-  for (let i = shuffled.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [shuffled[i],shuffled[j]] = [shuffled[j],shuffled[i]]; }
+  for (let i = shuffled.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [shuffled[i],shuffled[j]] = [shuffled[j],shuffled[i]]; }
   renderGallery();
 });
 $('vReset').addEventListener('click', () => {
@@ -407,9 +405,7 @@ lb.addEventListener('touchend', e => {
 /* ══════════ PERFIL + CONTACTO ══════════ */
 async function loadProfile(){
   const { data } = await supabase.from('profile').select('*').limit(1).maybeSingle();
-  if (!data) return;
-  if (data.profile_image) $('profileImg').src = publicUrl(data.profile_image);
-  if (data.bio){ bioFromDb = data.bio; $('bioText').textContent = data.bio; }
+  if (data && data.profile_image) $('profileImg').src = publicUrl(data.profile_image);
 }
 async function loadSettings(){
   const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
@@ -453,4 +449,4 @@ $('secretForm').addEventListener('submit', async e => {
 
 /* ══════════ INIT ══════════ */
 applyLang();
-loadImages(); loadProfile(); loadSettings();
+loadTexts(); loadImages(); loadProfile(); loadSettings();

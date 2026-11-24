@@ -42,6 +42,7 @@
     <nav class="dash-nav">
       <button class="dash-nav-btn active" data-tab="upload"><i>⬆</i>Subir fotos</button>
       <button class="dash-nav-btn" data-tab="gallery"><i>▦</i>Galería</button>
+      <button class="dash-nav-btn" data-tab="texts"><i>✎</i>Textos</button>
       <button class="dash-nav-btn" data-tab="profile"><i>◍</i>Perfil</button>
       <button class="dash-nav-btn" data-tab="contact"><i>✉</i>Contacto</button>
       <button class="dash-nav-btn" data-tab="stats"><i>◫</i>Estadísticas</button>
@@ -61,8 +62,8 @@
 
     <div class="schema-alert" id="schemaAlert" hidden>
       <div class="sa-body">
-        <h3>Faltan columnas en la base de datos</h3>
-        <p>Sin esto no se guarda la portada, el encuadre ni los pesos. Supabase → SQL Editor → pegar y ejecutar:</p>
+        <h3>Falta actualizar la base de datos</h3>
+        <p>Sin esto no se guardan portada, encuadre, exposición ni textos. Supabase → SQL Editor → pegar y ejecutar:</p>
         <pre id="schemaSql">alter table portfolio_images
   add column if not exists file_size bigint,
   add column if not exists file_format text,
@@ -70,7 +71,27 @@
   add column if not exists is_featured boolean not null default false,
   add column if not exists focus_x real not null default 50,
   add column if not exists focus_y real not null default 50,
-  add column if not exists cover_zoom real not null default 1;</pre>
+  add column if not exists cover_zoom real not null default 1,
+  add column if not exists cover_bright real not null default 1,
+  add column if not exists cover_scrim real not null default 0.55;
+
+create table if not exists site_texts (
+  lang text primary key,
+  hero_kicker text, hero_t1 text, hero_t2 text, hero_t3 text,
+  hero_sub text, hero_cta text,
+  about_title text, about_bio text,
+  contact_title text, contact_lead text,
+  updated_at timestamptz not null default now()
+);
+
+alter table site_texts enable row level security;
+
+drop policy if exists "Public read texts" on site_texts;
+create policy "Public read texts" on site_texts for select using (true);
+
+drop policy if exists "Admin write texts" on site_texts;
+create policy "Admin write texts" on site_texts for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');</pre>
       </div>
       <div class="sa-actions">
         <button class="btn btn-ghost btn-sm" id="copySql">Copiar SQL</button>
@@ -162,19 +183,36 @@
       <div class="admin-gallery" id="adminGallery"></div>
     </section>
 
+    <section class="dash-panel" data-panel="texts">
+      <div class="panel-card wide">
+        <h3>Textos del sitio</h3>
+        <p class="pe-note mb center">Cada idioma guarda su propio texto. Un campo vacío usa el texto por defecto de ese idioma.</p>
+        <div class="lang-tabs" id="textLangs">
+          <button class="chip-toggle" data-lang="es" aria-pressed="true">Español</button>
+          <button class="chip-toggle" data-lang="en" aria-pressed="false">English</button>
+          <button class="chip-toggle" data-lang="pt" aria-pressed="false">Português</button>
+        </div>
+        <div id="textFields"></div>
+        <div class="text-actions">
+          <button class="btn btn-ghost btn-sm" id="copyFromEs">Copiar desde Español</button>
+          <button class="btn btn-ghost btn-sm" id="clearTexts">Vaciar campos</button>
+          <button class="btn btn-primary" id="saveTexts"><span>Guardar textos</span></button>
+        </div>
+      </div>
+    </section>
+
     <section class="dash-panel" data-panel="profile">
       <div class="panel-card">
-        <h3>Identidad</h3>
+        <h3>Foto de perfil</h3>
         <div class="profile-editor">
           <div class="pe-thumb"><img id="adminProfileImg" alt="Perfil"></div>
           <div class="pe-side">
             <button class="btn btn-ghost btn-sm" id="profilePick">Cambiar foto</button>
             <input type="file" id="profileImgInput" accept="image/jpeg,image/png,image/webp" hidden>
             <p class="pe-note">Vertical 3:4 · se optimiza al subir</p>
+            <p class="pe-note">La biografía se edita en la pestaña <b>Textos</b>, idioma por idioma.</p>
           </div>
         </div>
-        <div class="field"><label>Biografía</label><textarea id="adminBio" rows="8"></textarea></div>
-        <div class="center"><button class="btn btn-primary" id="saveProfile"><span>Guardar perfil</span></button></div>
       </div>
     </section>
 
@@ -207,12 +245,11 @@
   </main>
 </section>
 
-<!-- ENCUADRE DE PORTADA -->
 <div class="frame-modal" id="frameModal" aria-hidden="true">
   <div class="fm-card">
     <header class="fm-head">
       <p class="section-kicker">— Portada del inicio</p>
-      <h3>Encuadre</h3>
+      <h3>Encuadre y luz</h3>
       <button class="fm-close" id="fmClose" aria-label="Cerrar">✕</button>
     </header>
 
@@ -234,6 +271,10 @@
 
     <div class="fm-tools">
       <label class="fm-ctl"><span>Zoom</span><input type="range" id="fmZoom" min="100" max="260" step="1" value="100"><b id="fmZoomOut">100%</b></label>
+      <label class="fm-ctl"><span>Exposición</span><input type="range" id="fmBright" min="60" max="190" step="1" value="100"><b id="fmBrightOut">100%</b></label>
+      <label class="fm-ctl"><span>Velo</span><input type="range" id="fmScrim" min="0" max="100" step="1" value="55"><b id="fmScrimOut">55%</b></label>
+    </div>
+    <div class="fm-tools">
       <div class="fm-presets">
         <button data-fx="50" data-fy="50">Centro</button>
         <button data-fx="50" data-fy="0">Arriba</button>

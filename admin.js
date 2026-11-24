@@ -86,15 +86,16 @@ async function pool(items, limit, worker){
   const q = [...items];
   await Promise.all(Array.from({length:Math.min(limit,q.length)}, async () => { while(q.length) await worker(q.shift()); }));
 }
-const missingColumn = err => !!err && (err.code === '42703' || /column|schema cache|does not exist/i.test(err.message||''));
+const missingSchema = err => !!err && (err.code === '42703' || err.code === '42P01' || /column|relation|schema cache|does not exist/i.test(err.message||''));
 
 /* ══════════ ESQUEMA ══════════ */
-let schemaOK = true;
+let schemaOK = true, textsOK = true;
 async function checkSchema(){
-  const { error } = await supabase.from('portfolio_images').select('id,is_featured,thumb_url,file_size,file_format,focus_x,focus_y,cover_zoom').limit(1);
-  schemaOK = !error;
-  $('schemaAlert').hidden = schemaOK;
-  return schemaOK;
+  const a = await supabase.from('portfolio_images').select('id,is_featured,thumb_url,file_size,file_format,focus_x,focus_y,cover_zoom,cover_bright,cover_scrim').limit(1);
+  const b = await supabase.from('site_texts').select('lang').limit(1);
+  schemaOK = !a.error; textsOK = !b.error;
+  $('schemaAlert').hidden = schemaOK && textsOK;
+  return schemaOK && textsOK;
 }
 $('copySql').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(SQL_TEXT); toast('SQL copiado. Pegalo en Supabase → SQL Editor.'); }
@@ -105,7 +106,7 @@ $('copySql').addEventListener('click', async () => {
   }
 });
 $('retrySchema').addEventListener('click', async () => {
-  if (await checkSchema()){ toast('Esquema listo. Ya podés fijar y encuadrar la portada.'); await loadAdminGallery(); }
+  if (await checkSchema()){ toast('Base lista. Portada, luz y textos habilitados.'); await loadAdminGallery(); loadTexts(); }
   else toast('Todavía falta ejecutar el SQL en Supabase.','err');
 });
 
@@ -149,7 +150,7 @@ async function showDashboard(user){
   authWrap.style.display='none'; dashboard.hidden=false;
   $('userEmail').textContent = user.email;
   await checkSchema();
-  loadAdminGallery(); loadAdminProfile(); loadSettingsAdmin();
+  loadAdminGallery(); loadAdminProfile(); loadSettingsAdmin(); loadTexts();
 }
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -162,7 +163,7 @@ $('loginForm').addEventListener('submit', async e => {
 });
 $('logoutBtn').addEventListener('click', async () => { await supabase.auth.signOut(); location.reload(); });
 
-/* ══════════ TABS (sin re-render ni animación de entrada) ══════════ */
+/* ══════════ TABS ══════════ */
 document.querySelectorAll('.dash-nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.classList.contains('active')) return;
@@ -173,6 +174,95 @@ document.querySelectorAll('.dash-nav-btn').forEach(btn => {
     $('dashTitle').textContent = btn.textContent.trim();
     if (btn.dataset.tab === 'stats') renderStats();
   });
+});
+
+/* ══════════ TEXTOS ══════════ */
+const TEXT_FIELDS = [
+  ['hero_kicker','Hero · epígrafe'],
+  ['hero_cta','Hero · botón'],
+  ['hero_t1','Hero · línea 1'],
+  ['hero_t2','Hero · línea 2'],
+  ['hero_t3','Hero · línea 3'],
+  ['hero_sub','Hero · subtítulo','ta','full'],
+  ['about_title','Sobre mí · título','','full'],
+  ['about_bio','Sobre mí · biografía','ta','full'],
+  ['contact_title','Contacto · título'],
+  ['contact_lead','Contacto · bajada','ta']
+];
+const DEF = {
+  es:{ hero_kicker:'Santiago Fotografía — Est. 2015', hero_cta:'Ver Portfolio', hero_t1:'CAPTURA', hero_t2:'EL', hero_t3:'INSTANTE',
+       hero_sub:'Cada imagen cuenta una historia única. Momentos que perduran más allá del tiempo.',
+       about_title:'La historia detrás del lente',
+       about_bio:'Soy Santiago, fotógrafo profesional con más de una década documentando la vida a través del lente.',
+       contact_title:'HABLEMOS', contact_lead:'Retratos, editoriales, eventos y colaboraciones creativas. Elegí tu canal.' },
+  en:{ hero_kicker:'Santiago Photography — Est. 2015', hero_cta:'View Portfolio', hero_t1:'CAPTURE', hero_t2:'THE', hero_t3:'MOMENT',
+       hero_sub:'Every image tells a unique story. Moments that outlast time itself.',
+       about_title:'The story behind the lens',
+       about_bio:'I am Santiago, a professional photographer with over a decade documenting life through the lens.',
+       contact_title:"LET'S TALK", contact_lead:'Portraits, editorials, events and creative collaborations. Pick your channel.' },
+  pt:{ hero_kicker:'Santiago Fotografia — Est. 2015', hero_cta:'Ver Portfólio', hero_t1:'CAPTURE', hero_t2:'O', hero_t3:'INSTANTE',
+       hero_sub:'Cada imagem conta uma história única. Momentos que duram além do tempo.',
+       about_title:'A história por trás da lente',
+       about_bio:'Sou Santiago, fotógrafo profissional com mais de uma década documentando a vida através da lente.',
+       contact_title:'VAMOS FALAR', contact_lead:'Retratos, editoriais, eventos e colaborações criativas. Escolha seu canal.' }
+};
+let TEXTS = {}, textLang = 'es';
+
+function buildTextFields(){
+  const wrap = document.createElement('div');
+  wrap.className = 'text-grid';
+  TEXT_FIELDS.forEach(([key,label,type,span]) => {
+    const f = document.createElement('div');
+    f.className = 'field' + (span === 'full' ? ' full' : '');
+    const l = document.createElement('label'); l.textContent = label; l.htmlFor = 'tx_'+key;
+    const input = document.createElement(type === 'ta' ? 'textarea' : 'input');
+    input.id = 'tx_'+key; input.dataset.key = key;
+    if (type !== 'ta') input.type = 'text';
+    input.placeholder = DEF[textLang][key] || '';
+    input.value = (TEXTS[textLang] && TEXTS[textLang][key]) || '';
+    const hint = document.createElement('span'); hint.className = 'hint';
+    hint.textContent = 'Vacío = texto por defecto de este idioma';
+    f.append(l, input, hint);
+    wrap.appendChild(f);
+  });
+  $('textFields').replaceChildren(wrap);
+}
+async function loadTexts(){
+  const { data, error } = await supabase.from('site_texts').select('*');
+  if (error){ console.warn(error.message); buildTextFields(); return; }
+  TEXTS = {};
+  (data||[]).forEach(r => TEXTS[r.lang] = r);
+  buildTextFields();
+}
+document.querySelectorAll('#textLangs button').forEach(b => b.addEventListener('click', () => {
+  textLang = b.dataset.lang;
+  document.querySelectorAll('#textLangs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  buildTextFields();
+}));
+$('copyFromEs').addEventListener('click', () => {
+  if (textLang === 'es') return toast('Ya estás editando Español.','warn');
+  const src = TEXTS.es || {};
+  document.querySelectorAll('#textFields [data-key]').forEach(inp => { inp.value = src[inp.dataset.key] || DEF.es[inp.dataset.key] || ''; });
+  toast('Copiado desde Español. Guardá para aplicar.');
+});
+$('clearTexts').addEventListener('click', () => {
+  document.querySelectorAll('#textFields [data-key]').forEach(inp => inp.value = '');
+  toast('Campos vacíos: al guardar vuelve el texto por defecto.','warn');
+});
+$('saveTexts').addEventListener('click', async () => {
+  if (!textsOK){ $('schemaAlert').hidden = false; return toast('Falta la tabla site_texts. Ejecutá el SQL.','err',5200); }
+  const row = { lang: textLang, updated_at: new Date().toISOString() };
+  document.querySelectorAll('#textFields [data-key]').forEach(inp => { row[inp.dataset.key] = inp.value.trim() || null; });
+  const btn = $('saveTexts'); btn.setAttribute('disabled','');
+  const { data, error } = await supabase.from('site_texts').upsert(row, { onConflict:'lang' }).select();
+  btn.removeAttribute('disabled');
+  if (error || !data?.length){
+    if (missingSchema(error)){ $('schemaAlert').hidden = false; return toast('Falta la tabla site_texts en Supabase.','err',5200); }
+    return toast('No se pudo guardar: '+(error?.message||'sin confirmar'),'err',5200);
+  }
+  TEXTS[textLang] = data[0];
+  buildTextFields();
+  toast(`Textos en ${textLang.toUpperCase()} guardados. Ya se ven en el sitio.`);
 });
 
 /* ══════════ UPLOAD ══════════ */
@@ -287,11 +377,14 @@ function renderCover(){
     if ($('coverImg').getAttribute('src') !== src) $('coverImg').src = src;
     thumb.classList.add('has-img');
     $('coverImg').style.objectPosition = `${row.focus_x ?? 50}% ${row.focus_y ?? 50}%`;
+    $('coverImg').style.filter = `brightness(${row.cover_bright ?? 1})`;
   } else { $('coverImg').removeAttribute('src'); thumb.classList.remove('has-img'); }
   $('coverTitle').textContent = row ? (manual ? 'Portada fija' : 'Portada automática') : 'Sin fotos todavía';
-  const zoom = row ? Math.round((row.cover_zoom ?? 1) * 100) : 100;
+  const z = row ? Math.round((row.cover_zoom ?? 1)*100) : 100;
+  const b = row ? Math.round((row.cover_bright ?? 1)*100) : 100;
+  const s = row ? Math.round((row.cover_scrim ?? .55)*100) : 55;
   $('coverMeta').textContent = row
-    ? `${row.category || '—'} · ${fmtBytes(row.file_size)} · zoom ${zoom}% · ${manual ? 'encuadre guardado' : 'se usa la más reciente'}`
+    ? `${row.category || '—'} · ${fmtBytes(row.file_size)} · zoom ${z}% · luz ${b}% · velo ${s}%`
     : 'Subí tu primera foto y ocupará el inicio automáticamente.';
   $('coverClear').hidden = !manual;
   $('coverFrame').hidden = !row;
@@ -299,19 +392,18 @@ function renderCover(){
 function cardFor(r, max){
   let card = cards.get(r.id);
   if (!card){
-    card = document.createElement('article');
-    card.className = 'ag-item';
+    card = document.createElement('article'); card.className = 'ag-item';
     const thumb = document.createElement('div'); thumb.className='ag-thumb';
     const im = document.createElement('img'); im.loading='lazy'; im.decoding='async';
     const cat = document.createElement('span'); cat.className='ag-cat';
-    const check = document.createElement('button'); check.className='ag-check'; check.type='button'; check.textContent='✓'; check.setAttribute('aria-label','Seleccionar');
+    const check = document.createElement('button'); check.className='ag-check'; check.type='button'; check.textContent='✓';
     const fav = document.createElement('button'); fav.className='ag-fav'; fav.type='button'; fav.textContent='★';
-    const del = document.createElement('button'); del.className='ag-del'; del.type='button'; del.textContent='✕'; del.setAttribute('aria-label','Eliminar');
+    const del = document.createElement('button'); del.className='ag-del'; del.type='button'; del.textContent='✕';
     const cv = document.createElement('span'); cv.className='ag-cover'; cv.textContent='Portada';
     thumb.append(im,cat,check,fav,del,cv);
     const meta = document.createElement('div'); meta.className='ag-meta';
     meta.innerHTML = `<span class="chip fmt"></span><span class="chip size"></span>`;
-    const bar = document.createElement('div'); bar.className='ag-bar'; bar.innerHTML = '<i></i>';
+    const bar = document.createElement('div'); bar.className='ag-bar'; bar.innerHTML='<i></i>';
     card.append(thumb,meta,bar);
     card.addEventListener('click', e => {
       if (e.target.closest('.ag-del') || e.target.closest('.ag-fav')) return;
@@ -324,8 +416,7 @@ function cardFor(r, max){
     del.addEventListener('click', async e => { e.stopPropagation(); await deleteRows([card._row]); });
     cards.set(r.id, card);
   }
-  card._row = r;
-  card.dataset.id = r.id;
+  card._row = r; card.dataset.id = r.id;
   card.classList.toggle('selected', selected.has(r.id));
   card.classList.toggle('is-cover', !!r.is_featured);
   const im = card.querySelector('img');
@@ -347,8 +438,7 @@ function cardFor(r, max){
   schip.className = 'chip size ' + wc;
   schip.textContent = r.file_size ? fmtBytes(r.file_size) : (schemaOK ? 'analizando…' : '—');
   const bi = card.querySelector('.ag-bar i');
-  bi.className = wc;
-  bi.style.width = (r.file_size ? Math.max(4,(r.file_size/max)*100) : 0) + '%';
+  bi.className = wc; bi.style.width = (r.file_size ? Math.max(4,(r.file_size/max)*100) : 0) + '%';
   return card;
 }
 function renderAdminGallery(){
@@ -356,9 +446,8 @@ function renderAdminGallery(){
   const list = filteredRows();
   const gal = $('adminGallery');
   const max = Math.max(1, ...list.map(r => r.file_size||0));
-  if (!list.length){
-    gal.innerHTML = '<div class="ag-empty">— Sin resultados con estos filtros —</div>';
-  } else {
+  if (!list.length){ gal.innerHTML = '<div class="ag-empty">— Sin resultados con estos filtros —</div>'; }
+  else {
     const frag = document.createDocumentFragment();
     list.forEach(r => frag.appendChild(cardFor(r, max)));
     gal.replaceChildren(frag);
@@ -388,31 +477,28 @@ function syncBulk(){
 }
 ['filterCategory','filterFormat','sortBy'].forEach(id => $(id).addEventListener('change', renderAdminGallery));
 $('heavyToggle').addEventListener('click', () => {
-  heavyOnly = !heavyOnly;
-  $('heavyToggle').setAttribute('aria-pressed', String(heavyOnly));
-  renderAdminGallery();
+  heavyOnly = !heavyOnly; $('heavyToggle').setAttribute('aria-pressed', String(heavyOnly)); renderAdminGallery();
 });
 $('selectAllBtn').addEventListener('click', () => {
   const visible = filteredRows();
   const allSel = visible.length>0 && visible.every(r => selected.has(r.id));
-  visible.forEach(r => allSel ? selected.delete(r.id) : selected.add(r.id));
-  visible.forEach(r => cards.get(r.id)?.classList.toggle('selected', selected.has(r.id)));
+  visible.forEach(r => { allSel ? selected.delete(r.id) : selected.add(r.id); cards.get(r.id)?.classList.toggle('selected', selected.has(r.id)); });
   syncBulk();
 });
-$('bulkClear').addEventListener('click', () => {
-  selected.forEach(id => cards.get(id)?.classList.remove('selected'));
-  selected.clear(); syncBulk();
-});
+$('bulkClear').addEventListener('click', () => { selected.forEach(id => cards.get(id)?.classList.remove('selected')); selected.clear(); syncBulk(); });
 
-/* ══════════ ENCUADRE DE PORTADA ══════════ */
+/* ══════════ ENCUADRE + LUZ ══════════ */
 const fm = $('frameModal'), fmStage = $('fmStage'), fmImg = $('fmImg');
-let fmRow = null, fx = 50, fy = 50, fz = 1, fmOpen = false;
+let fmRow = null, fx = 50, fy = 50, fz = 1, fb = 1, fs = .55, fmOpen = false;
 
 function paintFrame(){
   fmImg.style.objectPosition = `${fx}% ${fy}%`;
   fmImg.style.transform = `scale(${fz})`;
-  $('fmZoom').value = Math.round(fz*100);
-  $('fmZoomOut').textContent = Math.round(fz*100) + '%';
+  fmImg.style.filter = `brightness(${fb}) grayscale(.22) contrast(1.04) saturate(.92)`;
+  fmStage.style.setProperty('--s', fs);
+  $('fmZoom').value = Math.round(fz*100); $('fmZoomOut').textContent = Math.round(fz*100)+'%';
+  $('fmBright').value = Math.round(fb*100); $('fmBrightOut').textContent = Math.round(fb*100)+'%';
+  $('fmScrim').value = Math.round(fs*100); $('fmScrimOut').textContent = Math.round(fs*100)+'%';
   $('fmRead').textContent = `X ${Math.round(fx)} · Y ${Math.round(fy)}`;
 }
 function openFrame(row){
@@ -426,7 +512,13 @@ function openFrame(row){
   fx = Number.isFinite(row.focus_x) ? row.focus_x : 50;
   fy = Number.isFinite(row.focus_y) ? row.focus_y : 50;
   fz = Number.isFinite(row.cover_zoom) ? clamp(row.cover_zoom,1,2.6) : 1;
+  fb = Number.isFinite(row.cover_bright) ? clamp(row.cover_bright,.6,1.9) : 1;
+  fs = Number.isFinite(row.cover_scrim) ? clamp(row.cover_scrim,0,1) : .55;
   fmImg.src = row.image_url;
+  const g = $('fmGhost').children;
+  g[0].textContent = (TEXTS.es && TEXTS.es.hero_t1) || DEF.es.hero_t1;
+  g[1].textContent = (TEXTS.es && TEXTS.es.hero_t2) || DEF.es.hero_t2;
+  g[2].textContent = (TEXTS.es && TEXTS.es.hero_t3) || DEF.es.hero_t3;
   fm.classList.add('open'); fmOpen = true; lockScroll();
   paintFrame();
 }
@@ -437,55 +529,38 @@ fm.addEventListener('click', e => { if (e.target === fm) closeFrame(); });
 $('coverFrame').addEventListener('click', () => openFrame(rows.find(r=>r.is_featured) || rows[0]));
 $('bulkFeature').addEventListener('click', () => { const l = selectedRows(); if (l.length===1) openFrame(l[0]); });
 
-$('fmZoom').addEventListener('input', e => { fz = clamp(+e.target.value/100, 1, 2.6); paintFrame(); });
-document.querySelectorAll('.fm-presets button').forEach(b => b.addEventListener('click', () => {
-  fx = +b.dataset.fx; fy = +b.dataset.fy; paintFrame();
-}));
-$('fmReset').addEventListener('click', () => { fx = 50; fy = 50; fz = 1; paintFrame(); });
+$('fmZoom').addEventListener('input', e => { fz = clamp(+e.target.value/100,1,2.6); paintFrame(); });
+$('fmBright').addEventListener('input', e => { fb = clamp(+e.target.value/100,.6,1.9); paintFrame(); });
+$('fmScrim').addEventListener('input', e => { fs = clamp(+e.target.value/100,0,1); paintFrame(); });
+document.querySelectorAll('.fm-presets button').forEach(b => b.addEventListener('click', () => { fx = +b.dataset.fx; fy = +b.dataset.fy; paintFrame(); }));
+$('fmReset').addEventListener('click', () => { fx=50; fy=50; fz=1; fb=1; fs=.55; paintFrame(); });
 $('fmTextBtn').addEventListener('click', () => {
   const on = $('fmTextBtn').getAttribute('aria-pressed') !== 'true';
-  $('fmTextBtn').setAttribute('aria-pressed', String(on));
-  $('fmGhost').hidden = !on;
+  $('fmTextBtn').setAttribute('aria-pressed', String(on)); $('fmGhost').hidden = !on;
 });
 $('fmGridBtn').addEventListener('click', () => {
   const on = $('fmGridBtn').getAttribute('aria-pressed') !== 'true';
-  $('fmGridBtn').setAttribute('aria-pressed', String(on));
-  $('fmThirds').hidden = !on;
+  $('fmGridBtn').setAttribute('aria-pressed', String(on)); $('fmThirds').hidden = !on;
 });
-$('fmDesktop').addEventListener('click', () => {
-  fmStage.classList.remove('mobile');
-  $('fmDesktop').setAttribute('aria-pressed','true'); $('fmMobile').setAttribute('aria-pressed','false');
-});
-$('fmMobile').addEventListener('click', () => {
-  fmStage.classList.add('mobile');
-  $('fmMobile').setAttribute('aria-pressed','true'); $('fmDesktop').setAttribute('aria-pressed','false');
-});
+$('fmDesktop').addEventListener('click', () => { fmStage.classList.remove('mobile'); $('fmDesktop').setAttribute('aria-pressed','true'); $('fmMobile').setAttribute('aria-pressed','false'); });
+$('fmMobile').addEventListener('click', () => { fmStage.classList.add('mobile'); $('fmMobile').setAttribute('aria-pressed','true'); $('fmDesktop').setAttribute('aria-pressed','false'); });
 
 let dragging = false, sx = 0, sy = 0, sfx = 50, sfy = 50;
 fmStage.addEventListener('pointerdown', e => {
   dragging = true; sx = e.clientX; sy = e.clientY; sfx = fx; sfy = fy;
-  fmStage.classList.add('grabbing');
-  fmStage.setPointerCapture(e.pointerId);
+  fmStage.classList.add('grabbing'); fmStage.setPointerCapture(e.pointerId);
 });
 fmStage.addEventListener('pointermove', e => {
   if (!dragging) return;
   const r = fmStage.getBoundingClientRect();
-  fx = clamp(sfx - ((e.clientX - sx)/r.width)*100, 0, 100);
-  fy = clamp(sfy - ((e.clientY - sy)/r.height)*100, 0, 100);
+  fx = clamp(sfx - ((e.clientX-sx)/r.width)*100, 0, 100);
+  fy = clamp(sfy - ((e.clientY-sy)/r.height)*100, 0, 100);
   paintFrame();
 });
-const endDrag = e => {
-  if (!dragging) return;
-  dragging = false; fmStage.classList.remove('grabbing');
-  try { fmStage.releasePointerCapture(e.pointerId); } catch(err){}
-};
+const endDrag = e => { if (!dragging) return; dragging = false; fmStage.classList.remove('grabbing'); try { fmStage.releasePointerCapture(e.pointerId); } catch(err){} };
 fmStage.addEventListener('pointerup', endDrag);
 fmStage.addEventListener('pointercancel', endDrag);
-fmStage.addEventListener('wheel', e => {
-  e.preventDefault();
-  fz = clamp(fz - e.deltaY*0.0016, 1, 2.6);
-  paintFrame();
-}, { passive:false });
+fmStage.addEventListener('wheel', e => { e.preventDefault(); fz = clamp(fz - e.deltaY*0.0016,1,2.6); paintFrame(); }, { passive:false });
 
 addEventListener('keydown', e => {
   if (!fmOpen) return;
@@ -501,33 +576,37 @@ addEventListener('keydown', e => {
 
 $('fmSave').addEventListener('click', async () => {
   if (!fmRow) return;
-  const row = fmRow;
-  const btn = $('fmSave'); btn.setAttribute('disabled','');
-  const patch = { is_featured:true, focus_x:Math.round(fx*10)/10, focus_y:Math.round(fy*10)/10, cover_zoom:Math.round(fz*100)/100 };
+  const row = fmRow, btn = $('fmSave');
+  btn.setAttribute('disabled','');
+  const patch = {
+    is_featured:true,
+    focus_x:Math.round(fx*10)/10, focus_y:Math.round(fy*10)/10,
+    cover_zoom:Math.round(fz*100)/100,
+    cover_bright:Math.round(fb*100)/100,
+    cover_scrim:Math.round(fs*100)/100
+  };
   const clear = await supabase.from('portfolio_images').update({ is_featured:false }).eq('is_featured', true).select();
   if (clear.error){
     btn.removeAttribute('disabled');
-    if (missingColumn(clear.error)){ $('schemaAlert').hidden = false; closeFrame(); return toast('Falta la columna is_featured en Supabase.','err',5200); }
+    if (missingSchema(clear.error)){ $('schemaAlert').hidden = false; closeFrame(); return toast('Falta actualizar la base. Ejecutá el SQL.','err',5200); }
     return toast('No se pudo guardar: '+clear.error.message,'err',5200);
   }
   const res = await supabase.from('portfolio_images').update(patch).eq('id', row.id).select();
   btn.removeAttribute('disabled');
   if (res.error || !res.data?.length){
-    if (missingColumn(res.error)){ $('schemaAlert').hidden = false; closeFrame(); return toast('Faltan columnas de encuadre. Ejecutá el SQL.','err',5200); }
+    if (missingSchema(res.error)){ $('schemaAlert').hidden = false; closeFrame(); return toast('Faltan columnas de luz/encuadre. Ejecutá el SQL.','err',5200); }
     return toast('La base no confirmó el guardado. Revisá las políticas RLS de UPDATE.','err',6000);
   }
   rows.forEach(r => r.is_featured = (r.id === row.id));
   Object.assign(row, res.data[0]);
-  closeFrame();
-  renderAdminGallery();
-  toast('★ Portada guardada con su encuadre.');
+  closeFrame(); renderAdminGallery();
+  toast('★ Portada guardada con su encuadre y su luz.');
 });
 $('coverClear').addEventListener('click', async () => {
   const m = rows.find(r => r.is_featured); if (!m) return;
   const { error } = await supabase.from('portfolio_images').update({ is_featured:false }).eq('id', m.id).select();
   if (error) return toast('No se pudo quitar: '+error.message,'err');
-  m.is_featured = false;
-  renderAdminGallery();
+  m.is_featured = false; renderAdminGallery();
   toast('Portada liberada: el inicio usa la más reciente.');
 });
 
@@ -591,8 +670,7 @@ $('optimizeBtn').addEventListener('click', async () => {
       const { error } = await supabase.from('portfolio_images').update({ thumb_url:url, file_size:r.file_size||blob.size, file_format:r.file_format||fmtOf(blob.type,r.image_url) }).eq('id', r.id);
       if (error) throw error;
       r.thumb_url = url; ok++;
-      const card = cards.get(r.id);
-      if (card) card.querySelector('img').src = url;
+      const card = cards.get(r.id); if (card) card.querySelector('img').src = url;
     } catch(e){ console.error(e); fail++; }
     $('optCount').textContent = targets.length - (ok+fail);
   });
@@ -617,14 +695,14 @@ $('bulkDuplicate').addEventListener('click', async () => {
   const category = $('bulkCategory').value;
   const copies = list.map(r => {
     const c = { title:null, category, image_url:r.image_url };
-    if (schemaOK){ c.thumb_url=r.thumb_url; c.file_size=r.file_size; c.file_format=r.file_format; c.is_featured=false; c.focus_x=r.focus_x??50; c.focus_y=r.focus_y??50; c.cover_zoom=r.cover_zoom??1; }
+    if (schemaOK){ c.thumb_url=r.thumb_url; c.file_size=r.file_size; c.file_format=r.file_format; c.is_featured=false;
+      c.focus_x=r.focus_x??50; c.focus_y=r.focus_y??50; c.cover_zoom=r.cover_zoom??1; c.cover_bright=r.cover_bright??1; c.cover_scrim=r.cover_scrim??.55; }
     return c;
   });
   const { data, error } = await supabase.from('portfolio_images').insert(copies).select();
   if (error) return toast('No se pudo duplicar: '+error.message,'err');
   rows = [...(data||[]), ...rows];
-  selected.clear();
-  renderAdminGallery(); renderStats();
+  selected.clear(); renderAdminGallery(); renderStats();
   toast(`${copies.length} copia${copies.length>1?'s':''} en ${category} (sin ocupar espacio extra)`);
 });
 $('bulkDelete').addEventListener('click', async () => { const l = selectedRows(); if (l.length) await deleteRows(l); });
@@ -658,9 +736,7 @@ async function deleteRows(list){
 /* ══════════ PERFIL ══════════ */
 async function loadAdminProfile(){
   const { data } = await supabase.from('profile').select('*').limit(1).maybeSingle();
-  if (!data) return;
-  if (data.profile_image) $('adminProfileImg').src = publicUrl(data.profile_image);
-  if (data.bio) $('adminBio').value = data.bio;
+  if (data && data.profile_image) $('adminProfileImg').src = publicUrl(data.profile_image);
 }
 $('profilePick').addEventListener('click', () => $('profileImgInput').click());
 $('profileImgInput').addEventListener('change', async e => {
@@ -677,15 +753,6 @@ $('profileImgInput').addEventListener('change', async e => {
   if (de) return toast('Error al guardar: '+de.message,'err');
   $('adminProfileImg').src = publicUrl(data.path);
   toast(`Foto de perfil actualizada · ${fmtBytes(optimized.size)}`);
-});
-$('saveProfile').addEventListener('click', async () => {
-  const bio = $('adminBio').value.trim();
-  const existing = await supabase.from('profile').select('id').limit(1).maybeSingle();
-  const { error } = existing.data
-    ? await supabase.from('profile').update({ bio }).eq('id', existing.data.id)
-    : await supabase.from('profile').insert({ bio });
-  if (error) return toast('No se pudo guardar: '+error.message,'err');
-  toast('Biografía guardada.');
 });
 
 /* ══════════ SETTINGS ══════════ */
